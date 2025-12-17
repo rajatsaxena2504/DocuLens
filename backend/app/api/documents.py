@@ -260,26 +260,122 @@ def get_section_suggestions(
             detail="Document type must be set to get suggestions",
         )
 
-    # Get project analysis data
-    project = document.project
-    if not project.analysis_data:
+    # Get all repositories from SDLC project or fallback to single project
+    repositories = []
+    if document.sdlc_project_id and document.sdlc_project:
+        repositories = list(document.sdlc_project.repositories)
+    elif document.project:
+        # Check if primary project has SDLC project
+        if document.project.sdlc_project_id and document.project.sdlc_project:
+            repositories = list(document.project.sdlc_project.repositories)
+        else:
+            repositories = [document.project]
+
+    if not repositories:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Project must be analyzed first",
+            detail="No repositories found for this document",
         )
+
+    # Check that at least one repository has analysis data
+    analyzed_repos = [r for r in repositories if r.analysis_data]
+    if not analyzed_repos:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Repositories must be analyzed first",
+        )
+
+    # Aggregate analysis data from all repositories
+    aggregated_analysis = _aggregate_repository_analysis(analyzed_repos)
 
     suggester = SectionSuggester(db)
 
     try:
         suggestions = suggester.suggest_sections(
             document_type_id=str(document.document_type_id),
-            code_analysis=project.analysis_data,
+            code_analysis=aggregated_analysis,
         )
         return suggestions
     except Exception as e:
         # Fallback: return default sections from template when AI fails
         print(f"AI suggestion failed, using template defaults: {e}")
         return suggester.get_default_sections(str(document.document_type_id))
+
+
+def _aggregate_repository_analysis(repositories: list) -> dict:
+    """Aggregate analysis data from multiple repositories."""
+    if len(repositories) == 1:
+        return repositories[0].analysis_data
+
+    aggregated = {
+        'is_multi_repo': True,
+        'repositories': [],
+        'languages': {},
+        'file_tree': [],
+        'config_files': [],
+        'entry_points': [],
+        'key_files': [],
+        'structure': {
+            'total_files': 0,
+            'total_dirs': 0,
+            'total_lines': 0,
+        },
+        'dependencies': {},
+        'primary_language': None,
+    }
+
+    for repo in repositories:
+        analysis = repo.analysis_data or {}
+        repo_info = {
+            'name': repo.name,
+            'type': repo.repo_type or 'unknown',
+            'primary_language': analysis.get('primary_language'),
+        }
+        aggregated['repositories'].append(repo_info)
+
+        # Aggregate languages
+        if analysis.get('languages'):
+            for lang, count in analysis['languages'].items():
+                aggregated['languages'][lang] = aggregated['languages'].get(lang, 0) + count
+
+        # Aggregate structure
+        if analysis.get('structure'):
+            structure = analysis['structure']
+            aggregated['structure']['total_files'] += structure.get('total_files', 0)
+            aggregated['structure']['total_dirs'] += structure.get('total_dirs', 0)
+            aggregated['structure']['total_lines'] += structure.get('total_lines', 0)
+
+        # Aggregate file trees with repo prefix
+        if analysis.get('file_tree'):
+            for path in analysis['file_tree']:
+                aggregated['file_tree'].append(f"{repo.name}/{path}")
+
+        # Aggregate config files
+        if analysis.get('config_files'):
+            for config in analysis['config_files']:
+                aggregated['config_files'].append(f"{repo.name}/{config}")
+
+        # Aggregate entry points
+        if analysis.get('entry_points'):
+            aggregated['entry_points'].extend(analysis['entry_points'])
+
+        # Aggregate key files
+        if analysis.get('key_files'):
+            for kf in analysis['key_files']:
+                kf_copy = dict(kf)
+                kf_copy['path'] = f"{repo.name}/{kf['path']}"
+                kf_copy['repository'] = repo.name
+                aggregated['key_files'].append(kf_copy)
+
+        # Aggregate dependencies
+        if analysis.get('dependencies'):
+            aggregated['dependencies'][repo.name] = analysis['dependencies']
+
+    # Determine primary language from aggregated data
+    if aggregated['languages']:
+        aggregated['primary_language'] = max(aggregated['languages'], key=aggregated['languages'].get)
+
+    return aggregated
 
 
 @router.get("/{document_id}/sections")

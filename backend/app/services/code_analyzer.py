@@ -63,6 +63,13 @@ class CodeAnalyzer:
             for ext in exts:
                 self.ext_to_language[ext] = lang
 
+    def analyze_repository(self, path: str) -> dict[str, Any]:
+        """Analyze a repository and return structured information.
+
+        Alias for analyze() - used when adding repositories to SDLC projects.
+        """
+        return self.analyze(path)
+
     def analyze(self, path: str) -> dict[str, Any]:
         """Analyze a codebase and return structured information."""
         path = Path(path)

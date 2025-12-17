@@ -322,5 +322,251 @@
     "name": "Breaking Changes",
     "description": "Document any breaking changes, deprecations, and migration guides for users upgrading from previous versions.",
     "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440160",
+    "name": "Business Objectives",
+    "description": "Document the business objectives, goals, and key results (OKRs) that the project aims to achieve. Include success metrics and KPIs.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440161",
+    "name": "Stakeholder Analysis",
+    "description": "Identify and analyze all stakeholders including their interests, influence, communication needs, and engagement strategy.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440162",
+    "name": "Business Process Flow",
+    "description": "Document current and proposed business processes, workflows, and how the system will support or improve them.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440163",
+    "name": "Cost-Benefit Analysis",
+    "description": "Analyze costs, benefits, ROI projections, and financial justification for the project.",
+    "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440164",
+    "name": "Risk Assessment",
+    "description": "Identify potential risks, their probability and impact, mitigation strategies, and contingency plans.",
+    "default_order": 6
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440165",
+    "name": "Project Vision",
+    "description": "Define the project vision, mission statement, and long-term goals. Explain the problem being solved and the value proposition.",
+    "default_order": 1
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440166",
+    "name": "Target Users",
+    "description": "Define target user personas, their needs, pain points, and how the product addresses them.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440167",
+    "name": "Success Metrics",
+    "description": "Define measurable success criteria, KPIs, and metrics to track product performance and user satisfaction.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440168",
+    "name": "Feature Prioritization",
+    "description": "Prioritize features using frameworks like MoSCoW, RICE, or value vs effort matrix. Explain prioritization rationale.",
+    "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440170",
+    "name": "High-Level Components",
+    "description": "Document the major system components, their responsibilities, and high-level interactions without implementation details.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440171",
+    "name": "System Context",
+    "description": "Define the system boundary, external interfaces, and how the system fits within the larger ecosystem.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440172",
+    "name": "Module Specifications",
+    "description": "Detailed specifications for each module including class diagrams, method signatures, and implementation logic.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440173",
+    "name": "Algorithm Design",
+    "description": "Document algorithms, pseudocode, flowcharts, and computational logic for complex operations.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440174",
+    "name": "Error Handling Design",
+    "description": "Document error handling strategies, exception hierarchies, and recovery mechanisms at the module level.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440175",
+    "name": "Database Schema",
+    "description": "Detailed database schema including tables, columns, data types, constraints, indexes, and relationships.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440176",
+    "name": "Query Optimization",
+    "description": "Document query patterns, optimization strategies, indexing approach, and performance considerations.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440177",
+    "name": "Data Migration",
+    "description": "Document data migration strategies, scripts, rollback procedures, and data validation approaches.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440178",
+    "name": "UI Specifications",
+    "description": "Document UI specifications including wireframes, mockups, component library, and interaction patterns.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440179",
+    "name": "User Flows",
+    "description": "Document user journeys, navigation flows, and task completion paths through the interface.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440180",
+    "name": "Accessibility Guidelines",
+    "description": "Document accessibility requirements, WCAG compliance, and inclusive design considerations.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440181",
+    "name": "Interface Contracts",
+    "description": "Document interface contracts between systems including data formats, protocols, and SLAs.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440182",
+    "name": "Message Formats",
+    "description": "Document message schemas, event formats, and data exchange specifications for integrations.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440185",
+    "name": "Traceability Matrix",
+    "description": "Map test cases to requirements to ensure complete coverage. Track requirement-to-test relationships.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440186",
+    "name": "Test Coverage Analysis",
+    "description": "Document test coverage metrics, gaps, and recommendations for improving coverage.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440187",
+    "name": "Test Summary",
+    "description": "Executive summary of testing activities, results, defects found, and overall quality assessment.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440188",
+    "name": "Defect Analysis",
+    "description": "Analyze defects by category, severity, root cause, and provide trends and recommendations.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440189",
+    "name": "UAT Scenarios",
+    "description": "Document user acceptance test scenarios based on business processes and user workflows.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440190",
+    "name": "UAT Sign-off Criteria",
+    "description": "Define criteria for UAT sign-off including acceptance thresholds and stakeholder approvals.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440195",
+    "name": "Release Schedule",
+    "description": "Document release timeline, milestones, dependencies, and go/no-go criteria.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440196",
+    "name": "Release Checklist",
+    "description": "Comprehensive checklist of tasks, approvals, and validations required before release.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440197",
+    "name": "Communication Plan",
+    "description": "Document communication strategy for release including stakeholder notifications and user announcements.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440198",
+    "name": "Change Request Process",
+    "description": "Document the change request workflow, approval process, and impact assessment procedures.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440199",
+    "name": "Change Impact Analysis",
+    "description": "Document how to assess change impact on system, users, and dependent systems.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440200",
+    "name": "Pipeline Architecture",
+    "description": "Document CI/CD pipeline architecture, stages, jobs, and automation strategy.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440201",
+    "name": "Pipeline Configuration",
+    "description": "Document pipeline configuration, environment variables, secrets management, and triggers.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440205",
+    "name": "SLA Definitions",
+    "description": "Define service level agreements including availability targets, response times, and support tiers.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440206",
+    "name": "SLA Monitoring",
+    "description": "Document SLA monitoring approach, reporting, and breach handling procedures.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440207",
+    "name": "Support Procedures",
+    "description": "Document support request handling, escalation paths, and resolution workflows.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440208",
+    "name": "Common Issues",
+    "description": "Document common issues, their symptoms, root causes, and resolution steps.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440209",
+    "name": "FAQ",
+    "description": "Frequently asked questions with clear, concise answers for users and support staff.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440210",
+    "name": "How-To Guides",
+    "description": "Step-by-step guides for common tasks and procedures.",
+    "default_order": 3
   }
 ]

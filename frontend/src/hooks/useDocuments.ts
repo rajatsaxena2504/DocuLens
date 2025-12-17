@@ -34,8 +34,9 @@ export function useCreateDocument() {
       queryClient.invalidateQueries({ queryKey: ['documents'] })
       toast.success('Document created')
     },
-    onError: () => {
-      toast.error('Failed to create document')
+    onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
+      const message = error.response?.data?.detail || 'Failed to create document'
+      toast.error(message)
     },
   })
 }
@@ -166,11 +167,17 @@ export function useRegenerateSection() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ documentId, sectionId }: { documentId: string; sectionId: string }) =>
-      generationApi.regenerateSection(documentId, sectionId),
+    mutationFn: ({
+      documentId,
+      sectionId,
+      customPrompt,
+    }: {
+      documentId: string
+      sectionId: string
+      customPrompt?: string
+    }) => generationApi.regenerateSection(documentId, sectionId, { customPrompt }),
     onSuccess: (_, { documentId }) => {
       queryClient.invalidateQueries({ queryKey: ['documents', documentId] })
-      toast.success('Section regenerated')
     },
     onError: () => {
       toast.error('Failed to regenerate section')

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Mail, Lock, User } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import Button from '@/components/common/Button'
@@ -40,7 +39,7 @@ export default function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Input
         id="name"
         type="text"
@@ -49,7 +48,7 @@ export default function RegisterForm() {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="John Doe"
-        leftIcon={<User className="h-5 w-5" />}
+        leftIcon={<User className="h-4 w-4" />}
       />
 
       <Input
@@ -59,7 +58,7 @@ export default function RegisterForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
-        leftIcon={<Mail className="h-5 w-5" />}
+        leftIcon={<Mail className="h-4 w-4" />}
         required
       />
 
@@ -71,7 +70,7 @@ export default function RegisterForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Create a password"
-        leftIcon={<Lock className="h-5 w-5" />}
+        leftIcon={<Lock className="h-4 w-4" />}
         required
       />
 
@@ -82,32 +81,13 @@ export default function RegisterForm() {
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
         placeholder="Confirm your password"
-        leftIcon={<Lock className="h-5 w-5" />}
+        leftIcon={<Lock className="h-4 w-4" />}
         required
       />
 
-      <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+      <Button type="submit" className="w-full" isLoading={isLoading}>
         Create account
       </Button>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-200" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="bg-white px-4 text-slate-500">or</span>
-        </div>
-      </div>
-
-      <p className="text-center text-sm text-slate-600">
-        Already have an account?{' '}
-        <Link
-          to="/login"
-          className="font-semibold text-primary-600 hover:text-primary-500 transition-colors"
-        >
-          Sign in
-        </Link>
-      </p>
     </form>
   )
 }

@@ -105,27 +105,28 @@ export default function AddRepositoryPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="mx-auto max-w-2xl"
+        className="mx-auto max-w-2xl py-8"
       >
-        {/* Header */}
-        <motion.div variants={itemVariants} className="mb-8">
+        {/* Back Link */}
+        <motion.div variants={itemVariants}>
           <Link
             to={`/projects/${projectId}`}
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-8"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Project
           </Link>
+        </motion.div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-500 to-accent-600 shadow-lg shadow-accent-500/25">
+        {/* Header - Centered */}
+        <motion.div variants={itemVariants} className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-500 shadow-lg shadow-primary-500/30">
               <FolderGit2 className="h-7 w-7 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Add Repository</h1>
-              <p className="text-slate-500">Connect a GitHub repository to {project?.name}</p>
-            </div>
           </div>
+          <h1 className="text-2xl font-bold text-slate-900">Add Repository</h1>
+          <p className="text-slate-500 mt-1">Connect a GitHub repository to {project?.name}</p>
         </motion.div>
 
         {/* Main Form Card */}
@@ -245,13 +246,11 @@ export default function AddRepositoryPage() {
                   type="submit"
                   disabled={addRepository.isPending || !githubUrl.trim()}
                   className={cn(
-                    'w-full flex items-center justify-center gap-2 px-5 py-3',
-                    'bg-gradient-to-r from-primary-500 to-accent-500',
-                    'text-white font-medium rounded-xl',
-                    'shadow-lg shadow-primary-500/25',
-                    'hover:shadow-xl hover:shadow-primary-500/30',
+                    'w-full flex items-center justify-center gap-2 px-5 py-3.5',
+                    'bg-primary-500 hover:bg-primary-600',
+                    'text-white font-semibold rounded-xl',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
-                    'transition-all duration-200'
+                    'transition-colors duration-200'
                   )}
                 >
                   {addRepository.isPending ? (

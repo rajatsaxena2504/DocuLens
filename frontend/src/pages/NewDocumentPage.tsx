@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
-import { ArrowLeft, ClipboardList, Pencil, Code2, TestTube2, Rocket, Wrench } from 'lucide-react'
+import { ArrowLeft, ClipboardList, Pencil, Code2, TestTube2, Rocket, Wrench, Upload } from 'lucide-react'
 import Layout from '@/components/common/Layout'
 import Input from '@/components/common/Input'
 import Button from '@/components/common/Button'
 import TemplateSelector from '@/components/documents/TemplateSelector'
+import TemplateUpload from '@/components/projects/TemplateUpload'
 import { useCreateDocument } from '@/hooks/useDocuments'
 import { useSDLCProject, useSDLCStage } from '@/hooks/useSDLCProjects'
 import { PageLoading } from '@/components/common/Loading'
@@ -46,6 +47,7 @@ export default function NewDocumentPage() {
 
   const [title, setTitle] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentType | null>(null)
+  const [templateFile, setTemplateFile] = useState<File | null>(null)
 
   const isLoading = projectLoading || (stageId && stageLoading)
 
@@ -76,7 +78,7 @@ export default function NewDocumentPage() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <p className="text-gray-500">Project not found</p>
+          <p className="text-slate-500">Project not found</p>
         </div>
       </Layout>
     )
@@ -93,7 +95,7 @@ export default function NewDocumentPage() {
       {
         project_id: actualProjectId,
         document_type_id: selectedTemplate.id,
-        stage_id: stageId, // Include stage context
+        stage_id: stageId,
         title,
       },
       {
@@ -110,42 +112,39 @@ export default function NewDocumentPage() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-3xl">
         {/* Back link */}
         <Link
           to={backLink}
-          className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back to {stage ? stage.name : 'Project'}
         </Link>
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create New Document</h1>
-          <p className="text-sm text-gray-500">
-            Generate documentation for <span className="font-medium">{project.name}</span>
-          </p>
+        {/* Header with stage indicator */}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">Create New Document</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Generate documentation for <span className="font-medium">{project.name}</span>
+            </p>
+          </div>
+          {stage && Icon && colors && (
+            <div className={cn(
+              'flex items-center gap-2 px-3 py-1.5 rounded-lg border',
+              colors.bg,
+              colors.border
+            )}>
+              <Icon className={cn('h-4 w-4', colors.text)} />
+              <span className={cn('text-sm font-medium', colors.text)}>{stage.name}</span>
+            </div>
+          )}
         </div>
 
-        {/* Stage indicator if present */}
-        {stage && Icon && colors && (
-          <div className={cn(
-            'mb-6 rounded-xl border p-4 flex items-center gap-3',
-            colors.bg,
-            colors.border
-          )}>
-            <div className={cn('p-2 rounded-lg bg-white/80', colors.text)}>
-              <Icon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-700">SDLC Stage</p>
-              <p className={cn('text-lg font-semibold', colors.text)}>{stage.name}</p>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-xl border bg-white p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title input */}
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
             <Input
               id="title"
               label="Document Title"
@@ -156,14 +155,34 @@ export default function NewDocumentPage() {
             />
           </div>
 
-          <div className="rounded-xl border bg-white p-6">
-            <h2 className="mb-4 text-lg font-medium text-gray-900">
+          {/* Template selector */}
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <h2 className="mb-3 text-sm font-semibold text-slate-900">
               {stage ? `${stage.name} Document Types` : 'Select Document Type'}
             </h2>
             <TemplateSelector
               selectedId={selectedTemplate?.id || null}
               onSelect={setSelectedTemplate}
               stageId={stageId}
+            />
+          </div>
+
+          {/* Optional template upload */}
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Upload className="h-4 w-4 text-slate-500" />
+              <h2 className="text-sm font-semibold text-slate-900">
+                Upload Existing Document
+              </h2>
+              <span className="text-xs text-slate-400">(Optional)</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              Have an existing document? Upload it and we'll extract sections to help structure your documentation.
+            </p>
+            <TemplateUpload
+              file={templateFile}
+              onFileSelect={setTemplateFile}
+              onFileClear={() => setTemplateFile(null)}
             />
           </div>
 

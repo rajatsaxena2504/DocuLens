@@ -20,11 +20,68 @@
     "description": "Product-focused requirements document defining the what and why of the product, target users, success metrics, and feature prioritization.",
     "stage": "Requirements",
     "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440165",
+      "550e8400-e29b-41d4-a716-446655440136",
+      "550e8400-e29b-41d4-a716-446655440166",
+      "550e8400-e29b-41d4-a716-446655440167",
+      "550e8400-e29b-41d4-a716-446655440168",
+      "550e8400-e29b-41d4-a716-446655440135"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440060",
+    "name": "Business Requirements Document (BRD)",
+    "description": "Business-focused document capturing business objectives, stakeholder needs, cost-benefit analysis, and strategic alignment.",
+    "stage": "Requirements",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440160",
+      "550e8400-e29b-41d4-a716-446655440161",
+      "550e8400-e29b-41d4-a716-446655440162",
+      "550e8400-e29b-41d4-a716-446655440163",
+      "550e8400-e29b-41d4-a716-446655440164"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440061",
+    "name": "Functional Requirements Document (FRD)",
+    "description": "Detailed functional specifications describing system behavior, use cases, business rules, and data requirements.",
+    "stage": "Requirements",
+    "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
       "550e8400-e29b-41d4-a716-446655440136",
-      "550e8400-e29b-41d4-a716-446655440131",
       "550e8400-e29b-41d4-a716-446655440132",
+      "550e8400-e29b-41d4-a716-446655440134",
+      "550e8400-e29b-41d4-a716-446655440162",
       "550e8400-e29b-41d4-a716-446655440135"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440062",
+    "name": "Software Requirements Specification (SRS)",
+    "description": "IEEE-style comprehensive requirements specification covering functional, non-functional, interface, and system requirements.",
+    "stage": "Requirements",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440136",
+      "550e8400-e29b-41d4-a716-446655440132",
+      "550e8400-e29b-41d4-a716-446655440133",
+      "550e8400-e29b-41d4-a716-446655440134",
+      "550e8400-e29b-41d4-a716-446655440139",
+      "550e8400-e29b-41d4-a716-446655440135"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440063",
+    "name": "Vision & Scope Document",
+    "description": "Project vision statement, scope boundaries, success criteria, and high-level feature overview.",
+    "stage": "Requirements",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440165",
+      "550e8400-e29b-41d4-a716-446655440136",
+      "550e8400-e29b-41d4-a716-446655440166",
+      "550e8400-e29b-41d4-a716-446655440167",
+      "550e8400-e29b-41d4-a716-446655440164"
     ]
   },
   {
@@ -72,6 +129,60 @@
     ]
   },
   {
+    "id": "550e8400-e29b-41d4-a716-446655440070",
+    "name": "High-Level Design (HLD)",
+    "description": "Architecture overview document covering system context, major components, technology choices, and high-level data flow.",
+    "stage": "Design",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440171",
+      "550e8400-e29b-41d4-a716-446655440170",
+      "550e8400-e29b-41d4-a716-446655440103",
+      "550e8400-e29b-41d4-a716-446655440139",
+      "550e8400-e29b-41d4-a716-446655440106"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440071",
+    "name": "Low-Level Design (LLD)",
+    "description": "Detailed design document with module specifications, class diagrams, algorithms, sequence diagrams, and error handling.",
+    "stage": "Design",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440172",
+      "550e8400-e29b-41d4-a716-446655440173",
+      "550e8400-e29b-41d4-a716-446655440138",
+      "550e8400-e29b-41d4-a716-446655440174",
+      "550e8400-e29b-41d4-a716-446655440104"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440072",
+    "name": "Database Design Document",
+    "description": "Database architecture document including schema design, ERD, normalization, indexing strategy, and migration plans.",
+    "stage": "Design",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440175",
+      "550e8400-e29b-41d4-a716-446655440104",
+      "550e8400-e29b-41d4-a716-446655440176",
+      "550e8400-e29b-41d4-a716-446655440177"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440073",
+    "name": "UI/UX Design Document",
+    "description": "User interface and experience design document with wireframes, user flows, design system, and accessibility guidelines.",
+    "stage": "Design",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440178",
+      "550e8400-e29b-41d4-a716-446655440179",
+      "550e8400-e29b-41d4-a716-446655440166",
+      "550e8400-e29b-41d4-a716-446655440180"
+    ]
+  },
+  {
     "id": "550e8400-e29b-41d4-a716-446655440005",
     "name": "Developer Guide",
     "description": "Documentation for developers working on or with the codebase, including setup, architecture, and coding guidelines.",
@@ -113,6 +224,30 @@
     ]
   },
   {
+    "id": "550e8400-e29b-41d4-a716-446655440080",
+    "name": "Coding Standards Document",
+    "description": "Team coding standards, style guide, naming conventions, best practices, and code review guidelines.",
+    "stage": "Development",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440124",
+      "550e8400-e29b-41d4-a716-446655440123",
+      "550e8400-e29b-41d4-a716-446655440120"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440081",
+    "name": "Configuration Management Plan",
+    "description": "Version control strategy, branching model, release management, and configuration item tracking.",
+    "stage": "Development",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440128",
+      "550e8400-e29b-41d4-a716-446655440127",
+      "550e8400-e29b-41d4-a716-446655440126"
+    ]
+  },
+  {
     "id": "550e8400-e29b-41d4-a716-446655440052",
     "name": "Test Plan",
     "description": "Comprehensive test planning document including test strategy, test cases, testing environments, and quality metrics.",
@@ -138,6 +273,54 @@
     ]
   },
   {
+    "id": "550e8400-e29b-41d4-a716-446655440085",
+    "name": "Software Test Traceability Matrix (STTM)",
+    "description": "Requirements-to-test mapping document ensuring complete test coverage with traceability analysis.",
+    "stage": "Testing",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440185",
+      "550e8400-e29b-41d4-a716-446655440186",
+      "550e8400-e29b-41d4-a716-446655440141"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440086",
+    "name": "Test Case Document",
+    "description": "Detailed test cases with test IDs, preconditions, steps, expected results, and actual results tracking.",
+    "stage": "Testing",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440141",
+      "550e8400-e29b-41d4-a716-446655440142",
+      "550e8400-e29b-41d4-a716-446655440140"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440087",
+    "name": "Test Summary Report",
+    "description": "Executive summary of testing activities, pass/fail metrics, defect analysis, and quality recommendations.",
+    "stage": "Testing",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440187",
+      "550e8400-e29b-41d4-a716-446655440188",
+      "550e8400-e29b-41d4-a716-446655440143"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440088",
+    "name": "UAT Test Plan",
+    "description": "User acceptance testing plan with business scenarios, test scripts, and sign-off criteria.",
+    "stage": "Testing",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440189",
+      "550e8400-e29b-41d4-a716-446655440190",
+      "550e8400-e29b-41d4-a716-446655440142"
+    ]
+  },
+  {
     "id": "550e8400-e29b-41d4-a716-446655440054",
     "name": "Deployment Guide",
     "description": "Step-by-step deployment documentation including infrastructure setup, deployment procedures, and rollback plans.",
@@ -160,6 +343,43 @@
       "550e8400-e29b-41d4-a716-446655440146",
       "550e8400-e29b-41d4-a716-446655440149",
       "550e8400-e29b-41d4-a716-446655440128"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440090",
+    "name": "Release Plan",
+    "description": "Release planning document with schedule, milestones, checklist, go/no-go criteria, and communication plan.",
+    "stage": "Deployment",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440195",
+      "550e8400-e29b-41d4-a716-446655440196",
+      "550e8400-e29b-41d4-a716-446655440197",
+      "550e8400-e29b-41d4-a716-446655440148"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440091",
+    "name": "Change Management Document",
+    "description": "Change management procedures including change request process, impact analysis, and approval workflows.",
+    "stage": "Deployment",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440198",
+      "550e8400-e29b-41d4-a716-446655440199",
+      "550e8400-e29b-41d4-a716-446655440197"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440092",
+    "name": "CI/CD Pipeline Documentation",
+    "description": "Continuous integration and deployment pipeline documentation including architecture, configuration, and automation.",
+    "stage": "Deployment",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440200",
+      "550e8400-e29b-41d4-a716-446655440201",
+      "550e8400-e29b-41d4-a716-446655440147"
     ]
   },
   {
@@ -199,6 +419,42 @@
       "550e8400-e29b-41d4-a716-446655440130",
       "550e8400-e29b-41d4-a716-446655440153",
       "550e8400-e29b-41d4-a716-446655440154"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440095",
+    "name": "SLA Document",
+    "description": "Service Level Agreement document defining availability targets, response times, support tiers, and SLA monitoring.",
+    "stage": "Maintenance",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440205",
+      "550e8400-e29b-41d4-a716-446655440206",
+      "550e8400-e29b-41d4-a716-446655440151"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440096",
+    "name": "Support Playbook",
+    "description": "Support team playbook with procedures, escalation paths, common issues, and resolution workflows.",
+    "stage": "Maintenance",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440207",
+      "550e8400-e29b-41d4-a716-446655440208",
+      "550e8400-e29b-41d4-a716-446655440117"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440097",
+    "name": "Knowledge Base",
+    "description": "Self-service knowledge base with FAQs, how-to guides, and troubleshooting articles for users and support staff.",
+    "stage": "Maintenance",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440209",
+      "550e8400-e29b-41d4-a716-446655440210",
+      "550e8400-e29b-41d4-a716-446655440117"
     ]
   }
 ]

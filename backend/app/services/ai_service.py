@@ -1,63 +1,204 @@
-"""Unified AI service with Gemini (priority) and Anthropic (fallback) support."""
+"""Unified AI service with multi-provider support.
+
+Priority order:
+1. Ollama / LM Studio (local models) - if OLLAMA_BASE_URL is set
+2. Databricks Foundation Models - if DATABRICKS_HOST and DATABRICKS_TOKEN are set
+3. Google Gemini - if GEMINI_API_KEY is set
+4. Anthropic Claude - if ANTHROPIC_API_KEY is set
+5. Placeholder content (fallback)
+"""
 import json
+import requests
 from typing import Optional
 from app.config import settings
 
 
 class AIService:
-    """Unified AI service that prioritizes Gemini, falls back to Anthropic."""
+    """Unified AI service supporting multiple providers."""
 
     def __init__(self):
+        self.active_provider: Optional[str] = None
+        self.ollama_client = None
+        self.databricks_client = None
         self.gemini_client = None
         self.anthropic_client = None
         self._init_clients()
 
     def _init_clients(self):
-        """Initialize available AI clients."""
-        # Try Gemini first (priority)
-        if settings.gemini_api_key:
+        """Initialize available AI clients in priority order."""
+
+        # 1. Try Ollama / LM Studio (highest priority - local models)
+        if settings.ollama_base_url:
+            try:
+                # Test connection to Ollama
+                test_url = f"{settings.ollama_base_url.rstrip('/')}/api/tags"
+                # For LM Studio (OpenAI compatible), use /v1/models
+                if "/v1" in settings.ollama_base_url:
+                    test_url = f"{settings.ollama_base_url.rstrip('/')}/models"
+
+                response = requests.get(test_url, timeout=5)
+                if response.status_code == 200:
+                    self.ollama_client = {
+                        "base_url": settings.ollama_base_url.rstrip('/'),
+                        "model": settings.ollama_model,
+                        "is_openai_compatible": "/v1" in settings.ollama_base_url,
+                    }
+                    self.active_provider = "ollama"
+                    print(f"AI Service: Ollama/LM Studio initialized (model: {settings.ollama_model})")
+            except Exception as e:
+                print(f"AI Service: Failed to connect to Ollama/LM Studio: {e}")
+
+        # 2. Try Databricks Foundation Models
+        if not self.active_provider and settings.databricks_host and settings.databricks_token:
+            try:
+                self.databricks_client = {
+                    "host": settings.databricks_host.rstrip('/'),
+                    "token": settings.databricks_token,
+                    "model": settings.databricks_model,
+                }
+                # Test connection
+                test_url = f"{self.databricks_client['host']}/api/2.0/serving-endpoints"
+                headers = {"Authorization": f"Bearer {settings.databricks_token}"}
+                response = requests.get(test_url, headers=headers, timeout=10)
+                if response.status_code == 200:
+                    self.active_provider = "databricks"
+                    print(f"AI Service: Databricks initialized (model: {settings.databricks_model})")
+                else:
+                    self.databricks_client = None
+            except Exception as e:
+                print(f"AI Service: Failed to initialize Databricks: {e}")
+                self.databricks_client = None
+
+        # 3. Try Gemini
+        if not self.active_provider and settings.gemini_api_key:
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=settings.gemini_api_key)
-                # Use gemini-2.0-flash - fast and capable
-                self.gemini_client = genai.GenerativeModel('gemini-2.0-flash')
-                print("AI Service: Gemini initialized (primary)")
+                self.gemini_client = genai.GenerativeModel(settings.gemini_model)
+                self.active_provider = "gemini"
+                print(f"AI Service: Gemini initialized (model: {settings.gemini_model})")
             except Exception as e:
                 print(f"AI Service: Failed to initialize Gemini: {e}")
 
-        # Try Anthropic as fallback
-        if settings.anthropic_api_key:
+        # 4. Try Anthropic (lowest priority among paid APIs)
+        if not self.active_provider and settings.anthropic_api_key:
             try:
                 from anthropic import Anthropic
                 self.anthropic_client = Anthropic(api_key=settings.anthropic_api_key)
-                print("AI Service: Anthropic initialized (fallback)")
+                self.active_provider = "anthropic"
+                print(f"AI Service: Anthropic initialized (model: {settings.anthropic_model})")
             except Exception as e:
                 print(f"AI Service: Failed to initialize Anthropic: {e}")
 
-        if not self.gemini_client and not self.anthropic_client:
+        if not self.active_provider:
             print("AI Service: No AI provider available - will use placeholder content")
 
+    def get_active_provider(self) -> Optional[str]:
+        """Return the currently active AI provider name."""
+        return self.active_provider
+
     def generate_content(self, prompt: str, system_prompt: str = "") -> str:
-        """Generate content using available AI provider."""
-        # Try Gemini first
-        if self.gemini_client:
-            try:
-                return self._generate_with_gemini(prompt, system_prompt)
-            except Exception as e:
-                print(f"Gemini generation failed: {e}")
+        """Generate content using the active AI provider."""
 
-        # Try Anthropic as fallback
-        if self.anthropic_client:
-            try:
-                return self._generate_with_anthropic(prompt, system_prompt)
-            except Exception as e:
-                print(f"Anthropic generation failed: {e}")
+        # Try providers in priority order (active provider first, then fallbacks)
+        providers = [
+            ("ollama", self.ollama_client, self._generate_with_ollama),
+            ("databricks", self.databricks_client, self._generate_with_databricks),
+            ("gemini", self.gemini_client, self._generate_with_gemini),
+            ("anthropic", self.anthropic_client, self._generate_with_anthropic),
+        ]
 
-        # Both failed - raise to trigger placeholder
+        # Reorder to try active provider first
+        if self.active_provider:
+            providers = sorted(providers, key=lambda x: x[0] != self.active_provider)
+
+        for name, client, generate_fn in providers:
+            if client:
+                try:
+                    return generate_fn(prompt, system_prompt)
+                except Exception as e:
+                    print(f"{name.capitalize()} generation failed: {e}")
+
+        # All failed - raise to trigger placeholder
         raise Exception("No AI provider available or all providers failed")
 
+    def _generate_with_ollama(self, prompt: str, system_prompt: str = "") -> str:
+        """Generate content using Ollama or LM Studio."""
+        client = self.ollama_client
+
+        if client["is_openai_compatible"]:
+            # LM Studio / OpenAI-compatible API
+            url = f"{client['base_url']}/chat/completions"
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
+            response = requests.post(
+                url,
+                json={
+                    "model": client["model"],
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 4096,
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        else:
+            # Native Ollama API
+            url = f"{client['base_url']}/api/generate"
+            full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+
+            response = requests.post(
+                url,
+                json={
+                    "model": client["model"],
+                    "prompt": full_prompt,
+                    "stream": False,
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+            return response.json()["response"]
+
+    def _generate_with_databricks(self, prompt: str, system_prompt: str = "") -> str:
+        """Generate content using Databricks Foundation Models."""
+        client = self.databricks_client
+        url = f"{client['host']}/serving-endpoints/{client['model']}/invocations"
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        response = requests.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {client['token']}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "messages": messages,
+                "max_tokens": 4096,
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        # Handle different response formats
+        if "choices" in result:
+            return result["choices"][0]["message"]["content"]
+        elif "predictions" in result:
+            return result["predictions"][0]
+        else:
+            return str(result)
+
     def _generate_with_gemini(self, prompt: str, system_prompt: str = "") -> str:
-        """Generate content using Gemini."""
+        """Generate content using Google Gemini."""
         full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
         response = self.gemini_client.generate_content(full_prompt)
         return response.text
@@ -65,7 +206,7 @@ class AIService:
     def _generate_with_anthropic(self, prompt: str, system_prompt: str = "") -> str:
         """Generate content using Anthropic Claude."""
         kwargs = {
-            "model": "claude-3-haiku-20240307",
+            "model": settings.anthropic_model,
             "max_tokens": 4096,
             "messages": [{"role": "user", "content": prompt}],
         }

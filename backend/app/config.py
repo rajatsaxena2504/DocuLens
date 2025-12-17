@@ -23,9 +23,31 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
 
-    # External APIs (Gemini is prioritized if available, then Anthropic)
+    # ===========================================
+    # AI Provider Configuration
+    # Priority: Ollama → Databricks → Gemini → Anthropic → Placeholder
+    # ===========================================
+
+    # 1. Ollama / LM Studio (Local Models) - HIGHEST PRIORITY
+    # For Ollama: http://localhost:11434
+    # For LM Studio: http://localhost:1234/v1
+    ollama_base_url: str = ""  # Set to enable local models
+    ollama_model: str = "llama3.2"  # Model name (llama3.2, mistral, codellama, etc.)
+
+    # 2. Databricks Foundation Models
+    databricks_host: str = ""  # e.g., https://your-workspace.cloud.databricks.com
+    databricks_token: str = ""  # Personal access token
+    databricks_model: str = "databricks-meta-llama-3-1-70b-instruct"  # Model serving endpoint
+
+    # 3. Google Gemini
     gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+
+    # 4. Anthropic Claude
     anthropic_api_key: str = ""
+    anthropic_model: str = "claude-3-haiku-20240307"
+
+    # GitHub
     github_token: str = ""
 
     # File uploads

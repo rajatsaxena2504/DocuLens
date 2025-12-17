@@ -2,17 +2,16 @@ import { ReactNode, useState, useMemo } from 'react'
 import { Link, useLocation, matchPath } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useProjectContext } from '@/context/ProjectContext'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText,
   FolderKanban,
   LogOut,
   Menu,
   X,
-  Sparkles,
   ChevronRight,
   User,
   Settings,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/utils/helpers'
 import ProjectSidebar from '@/components/project/ProjectSidebar'
@@ -29,79 +28,69 @@ export default function Layout({ children }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
-  // Detect if we're in a project context (URL matches /projects/:id/...)
+  // Detect if we're in a project context
   const isInProjectContext = useMemo(() => {
+    // Check for project detail pages
     const projectDetailMatch = matchPath('/projects/:projectId/*', location.pathname)
-    // Don't show project sidebar on the main projects list or new project page
     if (
       location.pathname === '/projects' ||
       location.pathname === '/projects/new'
     ) {
       return false
     }
-    return !!projectDetailMatch
+    if (projectDetailMatch) return true
+
+    // Also check for document pages (they belong to a project context)
+    const documentMatch = matchPath('/documents/:documentId/*', location.pathname)
+    return !!documentMatch
   }, [location.pathname])
 
   const navigation = [
-    { name: 'SDLC Projects', href: '/projects', icon: FolderKanban },
-    { name: 'All Documents', href: '/documents', icon: FileText },
+    { name: 'Projects', href: '/projects', icon: FolderKanban },
+    { name: 'Documents', href: '/documents', icon: FileText },
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-page">
       {/* Mobile sidebar backdrop */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-out lg:translate-x-0',
-          'bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800',
+          'fixed inset-y-0 left-0 z-50 w-56 bg-white border-r border-slate-200 transition-transform duration-200 lg:translate-x-0',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Gradient overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-accent-500/5 pointer-events-none" />
-
-        <div className="relative flex h-full flex-col">
+        <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-20 items-center justify-between px-6 border-b border-slate-700/50">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-primary-500 to-accent-500 shadow-lg">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
+          <div className="flex h-14 items-center justify-between px-4 border-b border-slate-100">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-500">
+                <BookOpen className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">DocuLens</span>
+              <span className="text-base font-semibold text-slate-900">DocuLens</span>
             </Link>
             <button
-              className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden transition-colors"
+              className="p-1.5 text-slate-400 hover:text-slate-600 lg:hidden"
               onClick={() => setIsSidebarOpen(false)}
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* Conditional sidebar content */}
           {isInProjectContext ? (
-            // Project context sidebar
             <ProjectSidebar className="flex-1" />
           ) : (
-            // Main navigation sidebar
             <>
               {/* Navigation */}
-              <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-thin">
+              <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
                 {navigation.map((item) => {
                   const isActive = location.pathname === item.href
                   return (
@@ -109,43 +98,25 @@ export default function Layout({ children }: LayoutProps) {
                       key={item.name}
                       to={item.href}
                       className={cn(
-                        'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
+                        'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-gradient-to-r from-primary-500/20 to-primary-500/10 text-white'
-                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                          ? 'bg-primary-50 text-primary-700'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                       )}
                     >
-                      <div className={cn(
-                        'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-                        isActive
-                          ? 'bg-primary-500/20 text-primary-400'
-                          : 'bg-slate-800/50 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
-                      )}>
-                        <item.icon className="h-5 w-5" />
-                      </div>
-                      <span className="flex-1">{item.name}</span>
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeNav"
-                          className="h-2 w-2 rounded-full bg-primary-400"
-                        />
-                      )}
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.name}</span>
                     </Link>
                   )
                 })}
               </nav>
 
-              {/* Pro Badge / Feature highlight */}
-              <div className="px-4 py-3">
-                <div className="rounded-xl bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-primary-500 to-accent-500">
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="text-sm font-semibold text-white">AI Powered</span>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    AI-powered SDLC documentation
+              {/* Help section */}
+              <div className="px-2 py-2 border-t border-slate-100">
+                <div className="rounded-lg bg-slate-50 p-2.5">
+                  <p className="text-xs font-medium text-slate-700 mb-0.5">SDLC Documentation</p>
+                  <p className="text-xs text-slate-500">
+                    Generate docs for every phase.
                   </p>
                 </div>
               </div>
@@ -153,94 +124,81 @@ export default function Layout({ children }: LayoutProps) {
           )}
 
           {/* User section */}
-          <div className="border-t border-slate-700/50 p-4">
+          <div className="border-t border-slate-100 p-2">
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex w-full items-center gap-3 rounded-xl p-3 hover:bg-slate-800/50 transition-colors"
+                className="flex w-full items-center gap-2.5 rounded-lg p-2 hover:bg-slate-50 transition-colors"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-accent-500 text-white font-semibold text-sm">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-100 text-primary-600 text-xs font-medium">
                   {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-white truncate">
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">
                     {user?.name || 'User'}
-                  </p>
-                  <p className="text-xs text-slate-400 truncate">
-                    {user?.email}
                   </p>
                 </div>
                 <ChevronRight className={cn(
-                  'h-4 w-4 text-slate-400 transition-transform',
+                  'h-3.5 w-3.5 text-slate-400 transition-transform',
                   isUserMenuOpen && 'rotate-90'
                 )} />
               </button>
 
-              <AnimatePresence>
-                {isUserMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 right-0 mb-2 rounded-xl bg-slate-800 border border-slate-700 shadow-xl overflow-hidden"
+              {isUserMenuOpen && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-white border border-slate-200 shadow-lg overflow-hidden">
+                  <button className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </button>
+                  <button className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </button>
+                  <div className="border-t border-slate-100" />
+                  <button
+                    onClick={logout}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors"
                   >
-                    <button className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
-                      <User className="h-4 w-4" />
-                      Profile
-                    </button>
-                    <button className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
-                      <Settings className="h-4 w-4" />
-                      Settings
-                    </button>
-                    <div className="border-t border-slate-700" />
-                    <button
-                      onClick={logout}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign out
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-72">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl px-6">
-          <button
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden transition-colors"
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          {/* Breadcrumb navigation */}
-          {breadcrumbItems.length > 0 && (
+      <div className="lg:pl-56">
+        {/* Top bar - only show if breadcrumbs exist */}
+        {breadcrumbItems.length > 0 && (
+          <header className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-slate-200 bg-white/95 backdrop-blur-sm px-4">
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="h-4 w-4" />
+            </button>
             <Breadcrumb items={breadcrumbItems} />
-          )}
+          </header>
+        )}
 
-          <div className="flex-1" />
-
-          {/* Right side actions */}
-          <div className="flex items-center gap-2">
-            {/* Add global actions here if needed */}
+        {/* Mobile menu button when no breadcrumbs */}
+        {breadcrumbItems.length === 0 && (
+          <div className="sticky top-0 z-30 flex h-12 items-center px-4 lg:hidden border-b border-slate-200 bg-white">
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="h-4 w-4" />
+            </button>
           </div>
-        </header>
+        )}
 
         {/* Page content */}
-        <main className="p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {children}
-          </motion.div>
+        <main className="p-4 lg:p-5">
+          {children}
         </main>
       </div>
     </div>

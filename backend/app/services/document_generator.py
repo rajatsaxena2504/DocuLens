@@ -87,6 +87,7 @@ class DocumentGenerator:
         document_id: str,
         section_id: str,
         repository_ids: Optional[list[str]] = None,
+        custom_prompt: Optional[str] = None,
     ) -> dict:
         """Regenerate content for a specific section."""
         section = (
@@ -113,6 +114,7 @@ class DocumentGenerator:
             aggregated_context=aggregated_context,
             doc_type_name=doc_type_name,
             stage_name=stage_name,
+            custom_prompt=custom_prompt,
         )
 
         generated = self._save_content(section_id, content)
@@ -242,6 +244,7 @@ class DocumentGenerator:
         aggregated_context: dict[str, Any],
         doc_type_name: str,
         stage_name: str = None,
+        custom_prompt: str = None,
     ) -> tuple[str, bool]:
         """Generate content for a single section.
 
@@ -268,10 +271,13 @@ class DocumentGenerator:
         code_context = self._build_code_context(all_relevant_files, aggregated_context)
 
         try:
+            # Use custom prompt if provided, otherwise use section description
+            description = custom_prompt if custom_prompt else section.description
+
             # Generate content using Claude with stage awareness
             content = self.claude_service.generate_section_content(
                 section_title=section.title,
-                section_description=section.description,
+                section_description=description,
                 code_context=code_context,
                 document_type=doc_type_name,
                 stage_name=stage_name,

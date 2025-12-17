@@ -325,6 +325,43 @@ def delete_repository(
     db.commit()
 
 
+@router.post("/{project_id}/repositories/{repo_id}/analyze", response_model=RepositoryResponse)
+def refresh_repository_analysis(
+    project_id: UUID,
+    repo_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """Re-analyze a repository to refresh its analysis data"""
+    from app.services.code_analyzer import CodeAnalyzer
+
+    user_id = current_user.id if current_user else UUID("00000000-0000-0000-0000-000000000001")
+
+    repository = (
+        db.query(Project)
+        .filter(
+            Project.id == repo_id,
+            Project.sdlc_project_id == project_id,
+            Project.user_id == user_id,
+        )
+        .first()
+    )
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Re-analyze the code
+    code_analyzer = CodeAnalyzer()
+    try:
+        analysis_data = code_analyzer.analyze_repository(repository.storage_path)
+        repository.analysis_data = analysis_data
+        db.commit()
+        db.refresh(repository)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+    return repository
+
+
 # ============ Stage Documents ============
 
 @router.get("/{project_id}/stages/{stage_id}/documents")

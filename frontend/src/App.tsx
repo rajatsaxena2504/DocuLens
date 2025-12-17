@@ -4,6 +4,7 @@ import { SessionProvider } from '@/context/SessionContext'
 import { ProjectProvider } from '@/context/ProjectContext'
 
 // Pages - DocuLens SDLC Documentation
+import WelcomePage from '@/pages/WelcomePage'
 import ProjectsPage from '@/pages/ProjectsPage'
 import NewProjectPage from '@/pages/NewProjectPage'
 import ProjectDetailPage from '@/pages/ProjectDetailPage'
@@ -49,8 +50,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Main entry point - SDLC Projects list */}
-      <Route path="/" element={<ProjectsPage />} />
+      {/* Main entry point - Welcome page */}
+      <Route path="/" element={<WelcomePage />} />
 
       {/* SDLC Projects */}
       <Route path="/projects" element={<ProjectsPage />} />

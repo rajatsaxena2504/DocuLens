@@ -43,7 +43,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
               {leftIcon}
             </div>
           )}
@@ -54,20 +54,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             disabled={disabled}
             className={cn(
-              'w-full rounded-xl border bg-white text-slate-900',
+              'w-full rounded-lg border bg-white text-slate-900',
               'placeholder:text-slate-400',
-              'transition-all duration-200',
+              'transition-colors duration-150',
               'focus:outline-none',
               // Sizes based on icons
-              leftIcon ? 'pl-12' : 'pl-4',
-              rightIcon || isPassword ? 'pr-12' : 'pr-4',
-              'py-3',
+              leftIcon ? 'pl-10' : 'pl-4',
+              rightIcon || isPassword ? 'pr-10' : 'pr-4',
+              'py-2.5',
               // States
               error
-                ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                ? 'border-error-300 focus:border-error-500 focus:ring-2 focus:ring-error-500/20'
                 : success
-                  ? 'border-success-300 focus:border-success-500 focus:ring-4 focus:ring-success-500/10'
-                  : 'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10',
+                  ? 'border-success-300 focus:border-success-500 focus:ring-2 focus:ring-success-500/20'
+                  : 'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
               // Disabled
               disabled && 'opacity-50 cursor-not-allowed bg-slate-50',
               className
@@ -79,26 +79,26 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
             >
               {showPassword ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="h-4 w-4" />
               )}
             </button>
           )}
 
           {!isPassword && rightIcon && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
               {rightIcon}
             </div>
           )}
 
           {hasStatus && !rightIcon && !isPassword && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-              {error && <AlertCircle className="h-5 w-5 text-red-500" />}
-              {success && <CheckCircle className="h-5 w-5 text-success-500" />}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {error && <AlertCircle className="h-4 w-4 text-error-500" />}
+              {success && <CheckCircle className="h-4 w-4 text-success-500" />}
             </div>
           )}
         </div>
@@ -106,7 +106,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {(error || success || hint) && (
           <p className={cn(
             'mt-1.5 text-sm',
-            error ? 'text-red-600' : success ? 'text-success-600' : 'text-slate-500'
+            error ? 'text-error-600' : success ? 'text-success-600' : 'text-slate-500'
           )}>
             {error || success || hint}
           </p>

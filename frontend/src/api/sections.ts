@@ -82,7 +82,7 @@ export const generationApi = {
   regenerateSection: async (
     documentId: string,
     sectionId: string,
-    repositoryIds?: string[]
+    options?: { repositoryIds?: string[]; customPrompt?: string }
   ): Promise<{
     section_id: string
     title: string
@@ -92,7 +92,10 @@ export const generationApi = {
   }> => {
     const response = await client.post(
       `/generation/documents/${documentId}/sections/${sectionId}/generate`,
-      { repository_ids: repositoryIds }
+      {
+        repository_ids: options?.repositoryIds,
+        custom_prompt: options?.customPrompt,
+      }
     )
     return response.data
   },

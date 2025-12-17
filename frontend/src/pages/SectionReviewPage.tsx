@@ -25,7 +25,6 @@ import {
   ArrowLeft,
   RotateCcw,
   Lightbulb,
-  GripVertical,
   Layers,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -44,8 +43,10 @@ import {
   useReorderSections,
   useUpdateDocument,
 } from '@/hooks/useDocuments'
+import { useSDLCProject, useSDLCStage } from '@/hooks/useSDLCProjects'
 import { useProjectAnalysis } from '@/hooks/useProjects'
-import type { DocumentSection, UpdateSectionRequest } from '@/types'
+import { useProjectContext } from '@/context/ProjectContext'
+import type { DocumentSection, UpdateSectionRequest, Repository } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/utils/helpers'
 
@@ -66,19 +67,91 @@ const itemVariants = {
   },
 }
 
+// Aggregate analysis data from multiple repositories
+function aggregateRepositoryAnalysis(repositories: Repository[]) {
+  const analyzedRepos = repositories.filter(r => r.analysis_data)
+
+  if (analyzedRepos.length === 0) return null
+
+  if (analyzedRepos.length === 1) {
+    return analyzedRepos[0].analysis_data
+  }
+
+  // Aggregate from multiple repositories
+  const aggregated = {
+    primary_language: null as string | null,
+    languages: {} as Record<string, number>,
+    structure: {
+      total_files: 0,
+      total_dirs: 0,
+      total_lines: 0,
+    },
+    repositories: analyzedRepos.map(r => ({
+      name: r.name,
+      type: r.repo_type,
+      primary_language: r.analysis_data?.primary_language,
+    })),
+  }
+
+  for (const repo of analyzedRepos) {
+    const analysis = repo.analysis_data
+    if (!analysis) continue
+
+    // Aggregate languages
+    if (analysis.languages) {
+      for (const [lang, count] of Object.entries(analysis.languages)) {
+        aggregated.languages[lang] = (aggregated.languages[lang] || 0) + (count as number)
+      }
+    }
+
+    // Aggregate structure
+    if (analysis.structure) {
+      aggregated.structure.total_files += analysis.structure.total_files || 0
+      aggregated.structure.total_dirs += analysis.structure.total_dirs || 0
+      aggregated.structure.total_lines += analysis.structure.total_lines || 0
+    }
+  }
+
+  // Determine primary language
+  if (Object.keys(aggregated.languages).length > 0) {
+    aggregated.primary_language = Object.entries(aggregated.languages)
+      .sort(([, a], [, b]) => b - a)[0][0]
+  }
+
+  return aggregated
+}
+
 export default function SectionReviewPage() {
   const { documentId } = useParams()
   const navigate = useNavigate()
+  const { setCurrentProject, setCurrentStage, setBreadcrumbItems } = useProjectContext()
 
   const { data: document, isLoading: docLoading, refetch: refetchDocument } = useDocument(documentId || '')
   const { data: suggestions, isLoading: suggestionsLoading, refetch: refetchSuggestions } = useSectionSuggestions(
     documentId || '',
     !!document && document.sections.length === 0
   )
-  const { data: projectAnalysis, isLoading: analysisLoading } = useProjectAnalysis(
-    document?.project_id || '',
-    !!document
+
+  // Get SDLC project to access all repositories with analysis data
+  const { data: sdlcProject, isLoading: sdlcProjectLoading } = useSDLCProject(
+    document?.sdlc_project_id || ''
   )
+
+  // Get stage info if document has a stage
+  const { data: stage } = useSDLCStage(document?.stage_id || '')
+
+  // Also get single repository analysis (as fallback)
+  const { data: singleRepoAnalysis, isLoading: singleRepoLoading } = useProjectAnalysis(
+    document?.project_id || '',
+    !!document?.project_id
+  )
+
+  // Aggregate analysis from all repositories, or use single repo analysis as fallback
+  const sdlcAnalysis = sdlcProject?.repositories?.length
+    ? aggregateRepositoryAnalysis(sdlcProject.repositories)
+    : null
+  const aggregatedAnalysis = sdlcAnalysis || singleRepoAnalysis?.analysis_data || null
+  const analysisLoading = sdlcProjectLoading || singleRepoLoading
 
   const addSection = useAddSection()
   const updateSection = useUpdateSection()
@@ -100,6 +173,33 @@ export default function SectionReviewPage() {
       setSections(document.sections)
     }
   }, [document])
+
+  // Set project context for sidebar
+  useEffect(() => {
+    if (sdlcProject) {
+      setCurrentProject(sdlcProject)
+      if (stage) {
+        setCurrentStage(stage)
+      }
+      // Set breadcrumbs
+      const crumbs: Array<{ label: string; href?: string }> = [
+        { label: 'Projects', href: '/projects' },
+        { label: sdlcProject.name, href: `/projects/${sdlcProject.id}` },
+      ]
+      if (stage) {
+        crumbs.push({ label: stage.name, href: `/projects/${sdlcProject.id}/stages/${stage.id}` })
+      }
+      if (document) {
+        crumbs.push({ label: document.title })
+      }
+      setBreadcrumbItems(crumbs)
+    }
+    return () => {
+      setCurrentProject(null)
+      setCurrentStage(null)
+      setBreadcrumbItems([])
+    }
+  }, [sdlcProject, stage, document, setCurrentProject, setCurrentStage, setBreadcrumbItems])
 
   useEffect(() => {
     if (suggestions && document && document.sections.length === 0) {
@@ -262,50 +362,48 @@ export default function SectionReviewPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="mx-auto max-w-4xl"
+        className="mx-auto max-w-5xl"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="mb-8">
+        <motion.div variants={itemVariants} className="mb-5">
           <Link
             to={`/projects/${document.sdlc_project_id || document.project_id}`}
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors mb-4"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5" />
             Back to Project
           </Link>
 
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-lg shadow-primary-500/25">
-                <Layers className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">{document.title}</h1>
-                <p className="text-slate-500">Review and customize sections before generating</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-primary-600">
+              <Layers className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900">{document.title}</h1>
+              <p className="text-sm text-slate-500">Review and customize sections before generating</p>
             </div>
           </div>
         </motion.div>
 
         {/* Analysis Stats */}
-        {projectAnalysis?.analysis_data && (
-          <motion.div variants={itemVariants} className="mb-6 grid gap-4 sm:grid-cols-3">
+        {aggregatedAnalysis && (
+          <motion.div variants={itemVariants} className="mb-4 grid gap-3 sm:grid-cols-3">
             <StatCard
-              icon={<FolderTree className="h-5 w-5" />}
-              label="Files Analyzed"
-              value={projectAnalysis.analysis_data.structure?.total_files || 0}
+              icon={<FolderTree className="h-4 w-4" />}
+              label="Files"
+              value={aggregatedAnalysis.structure?.total_files || 0}
               color="primary"
             />
             <StatCard
-              icon={<Code className="h-5 w-5" />}
-              label="Primary Language"
-              value={projectAnalysis.analysis_data.primary_language || 'Unknown'}
+              icon={<Code className="h-4 w-4" />}
+              label="Language"
+              value={aggregatedAnalysis.primary_language || 'Unknown'}
               color="accent"
             />
             <StatCard
-              icon={<FileCode className="h-5 w-5" />}
-              label="Lines of Code"
-              value={projectAnalysis.analysis_data.structure?.total_lines?.toLocaleString() || 0}
+              icon={<FileCode className="h-4 w-4" />}
+              label="Lines"
+              value={aggregatedAnalysis.structure?.total_lines?.toLocaleString() || 0}
               color="success"
             />
           </motion.div>
@@ -315,25 +413,25 @@ export default function SectionReviewPage() {
         <motion.div variants={itemVariants}>
           <Card variant="elevated" padding="none" className="overflow-hidden">
             {isAnalyzing ? (
-              <div className="py-16 text-center">
-                <Loading size="lg" />
-                <p className="mt-6 font-semibold text-slate-900">Analyzing your codebase...</p>
-                <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
-                  AI is identifying the most relevant sections for your documentation based on your project structure
+              <div className="py-12 text-center">
+                <Loading size="md" />
+                <p className="mt-4 font-medium text-slate-900">Analyzing your codebase...</p>
+                <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
+                  AI is identifying relevant sections based on your project
                 </p>
               </div>
             ) : (
               <>
                 {/* Toolbar */}
-                <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 bg-slate-50/50">
+                  <div className="flex items-center gap-2">
                     <span className={cn(
-                      'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium',
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
                       includedCount > 0
                         ? 'bg-success-100 text-success-700'
                         : 'bg-slate-100 text-slate-600'
                     )}>
-                      <CheckCircle className="h-4 w-4" />
+                      <CheckCircle className="h-3.5 w-3.5" />
                       {includedCount} of {totalCount} selected
                     </span>
                   </div>
@@ -344,7 +442,7 @@ export default function SectionReviewPage() {
                       onClick={handleRefreshSuggestions}
                       disabled={suggestionsLoading}
                       leftIcon={<RotateCcw className={cn(
-                        'h-4 w-4',
+                        'h-3.5 w-3.5',
                         suggestionsLoading && 'animate-spin'
                       )} />}
                     >
@@ -354,7 +452,7 @@ export default function SectionReviewPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setShowAddModal(true)}
-                      leftIcon={<Plus className="h-4 w-4" />}
+                      leftIcon={<Plus className="h-3.5 w-3.5" />}
                     >
                       Add Section
                     </Button>
@@ -362,19 +460,20 @@ export default function SectionReviewPage() {
                 </div>
 
                 {/* Section Plan List */}
-                <div className="p-6">
+                <div className="p-4">
                   {sections.length === 0 ? (
-                    <div className="py-16 text-center">
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
-                        <FileCode className="h-8 w-8 text-slate-400" />
+                    <div className="py-10 text-center">
+                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100">
+                        <FileCode className="h-6 w-6 text-slate-400" />
                       </div>
-                      <p className="font-semibold text-slate-900">No sections yet</p>
+                      <p className="font-medium text-slate-900">No sections yet</p>
                       <p className="mt-1 text-sm text-slate-500">Add your first section to get started</p>
                       <Button
                         variant="outline"
-                        className="mt-6"
+                        size="sm"
+                        className="mt-4"
                         onClick={() => setShowAddModal(true)}
-                        leftIcon={<Plus className="h-4 w-4" />}
+                        leftIcon={<Plus className="h-3.5 w-3.5" />}
                       >
                         Add Your First Section
                       </Button>
@@ -412,18 +511,17 @@ export default function SectionReviewPage() {
 
                 {/* Approve & Generate Button */}
                 {sections.length > 0 && (
-                  <div className="border-t border-slate-100 px-6 py-6 bg-gradient-to-r from-slate-50 to-white">
+                  <div className="border-t border-slate-100 px-4 py-4 bg-slate-50/50">
                     <Button
                       className="w-full"
-                      size="lg"
                       onClick={handleApproveAndGenerate}
                       isLoading={isSubmitting}
                       disabled={includedCount === 0 || isSubmitting}
-                      leftIcon={<Sparkles className="h-5 w-5" />}
+                      leftIcon={<Sparkles className="h-4 w-4" />}
                     >
                       View & Edit Documentation
                     </Button>
-                    <p className="mt-3 text-center text-xs text-slate-500">
+                    <p className="mt-2 text-center text-xs text-slate-500">
                       AI will generate content for {includedCount} selected section{includedCount !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -434,36 +532,35 @@ export default function SectionReviewPage() {
         </motion.div>
 
         {/* Tips */}
-        <motion.div variants={itemVariants} className="mt-6">
-          <Card variant="ghost" className="bg-gradient-to-r from-primary-50/50 to-accent-50/50 border border-primary-100">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-md shadow-primary-500/20">
-                <Lightbulb className="h-5 w-5 text-white" />
+        <motion.div variants={itemVariants} className="mt-4">
+          <div className="rounded-lg border border-primary-100 bg-primary-50/50 p-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 text-primary-600">
+                <Lightbulb className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Tips for better documentation</h3>
-                <ul className="space-y-1.5 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
-                    Click on a section title to edit it inline
+                <h3 className="text-sm font-medium text-slate-900 mb-1.5">Tips for better documentation</h3>
+                <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-600">
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-primary-400" />
+                    Click title to edit inline
                   </li>
-                  <li className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
-                    Expand sections to edit their descriptions
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-primary-400" />
+                    Expand to edit descriptions
                   </li>
-                  <li className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
-                    <GripVertical className="h-3 w-3 text-slate-400 inline" />
-                    Drag sections or use arrows to reorder
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-primary-400" />
+                    Drag or use arrows to reorder
                   </li>
-                  <li className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
-                    Uncheck sections you don't need in the final doc
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-primary-400" />
+                    Uncheck sections to exclude
                   </li>
                 </ul>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
       </motion.div>
 
@@ -490,45 +587,33 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
     primary: {
       bg: 'bg-primary-50',
       text: 'text-primary-600',
-      gradient: 'from-primary-500 to-primary-600',
     },
     accent: {
       bg: 'bg-accent-50',
       text: 'text-accent-600',
-      gradient: 'from-accent-500 to-accent-600',
     },
     success: {
       bg: 'bg-success-50',
       text: 'text-success-600',
-      gradient: 'from-success-500 to-success-600',
     },
   }
 
   const colors = colorClasses[color]
 
   return (
-    <motion.div
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card variant="elevated" className="relative overflow-hidden">
-        <div className="flex items-center gap-4">
-          <div className={cn(
-            'flex h-12 w-12 items-center justify-center rounded-xl',
-            colors.bg
-          )}>
-            <div className={colors.text}>{icon}</div>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
-            <p className="text-xl font-bold text-slate-900">{value}</p>
-          </div>
-        </div>
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <div className="flex items-center gap-3">
         <div className={cn(
-          'absolute -right-6 -top-6 h-16 w-16 rounded-full opacity-10',
-          `bg-gradient-to-br ${colors.gradient}`
-        )} />
-      </Card>
-    </motion.div>
+          'flex h-9 w-9 items-center justify-center rounded-lg',
+          colors.bg
+        )}>
+          <div className={colors.text}>{icon}</div>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
+          <p className="text-base font-semibold text-slate-900">{value}</p>
+        </div>
+      </div>
+    </div>
   )
 }

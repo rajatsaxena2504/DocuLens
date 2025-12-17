@@ -118,15 +118,15 @@ export default function SectionPlanItem({
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'group rounded-2xl border-2 bg-white transition-all duration-200',
-        isDragging && 'shadow-2xl ring-2 ring-primary-400 scale-[1.02] z-50',
+        'group rounded-lg border bg-white transition-all duration-200',
+        isDragging && 'shadow-lg ring-1 ring-primary-400 z-50',
         section.is_included
-          ? 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+          ? 'border-slate-200 hover:border-slate-300'
           : 'border-dashed border-slate-200 bg-slate-50/50 opacity-60'
       )}
     >
       {/* Main row */}
-      <div className="flex items-center gap-3 p-4">
+      <div className="flex items-center gap-2.5 p-3">
         {/* Drag handle */}
         <button
           {...attributes}
@@ -155,9 +155,9 @@ export default function SectionPlanItem({
 
         {/* Index badge */}
         <span className={cn(
-          'flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold transition-colors',
+          'flex h-6 w-6 items-center justify-center rounded text-xs font-medium transition-colors',
           section.is_included
-            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-sm'
+            ? 'bg-primary-500 text-white'
             : 'bg-slate-100 text-slate-500'
         )}>
           {index + 1}
@@ -174,7 +174,7 @@ export default function SectionPlanItem({
                 onChange={(e) => setEditTitle(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, handleSaveTitle, handleCancelTitle)}
                 onBlur={handleSaveTitle}
-                className="flex-1 rounded-xl border-2 border-primary-300 px-3 py-1.5 text-sm font-medium focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                className="flex-1 rounded-lg border border-primary-300 px-2.5 py-1 text-sm font-medium focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
               />
               <button
                 onClick={handleSaveTitle}
@@ -283,15 +283,15 @@ export default function SectionPlanItem({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-slate-100 px-4 py-4 pl-16">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="border-t border-slate-100 px-3 py-3 pl-14">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-medium text-slate-400 uppercase tracking-wide">
                   Description
                 </div>
                 {!isEditingDescription && (
                   <button
                     onClick={() => setIsEditingDescription(true)}
-                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 transition-colors"
+                    className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-50 transition-colors"
                   >
                     <Pencil className="h-3 w-3" />
                     Edit
@@ -299,35 +299,35 @@ export default function SectionPlanItem({
                 )}
               </div>
               {isEditingDescription ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <textarea
                     ref={descriptionInputRef}
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, handleSaveDescription, handleCancelDescription)}
-                    rows={4}
+                    rows={3}
                     placeholder="Describe what this section should cover..."
-                    className="w-full rounded-xl border-2 border-primary-300 px-4 py-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all resize-none"
+                    className="w-full rounded-lg border border-primary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none"
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={handleCancelDescription}
-                      className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                      className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveDescription}
-                      className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-4 py-2 text-sm font-medium text-white hover:from-primary-700 hover:to-primary-600 shadow-sm transition-all"
+                      className="rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
                     >
-                      Save Description
+                      Save
                     </button>
                   </div>
                 </div>
               ) : (
                 <div
                   onClick={() => setIsEditingDescription(true)}
-                  className="cursor-text rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 hover:border-primary-300 hover:bg-primary-50/30 transition-all"
+                  className="cursor-text rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-3 hover:border-primary-300 hover:bg-primary-50/30 transition-all"
                 >
                   <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
                     {section.description || 'Click to add a description...'}

@@ -1,9 +1,8 @@
 import { HTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/utils/helpers'
-import { motion, HTMLMotionProps } from 'framer-motion'
 
-interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, keyof HTMLMotionProps<'div'>> {
-  variant?: 'default' | 'elevated' | 'outline' | 'ghost' | 'gradient'
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'elevated' | 'outline' | 'ghost'
   interactive?: boolean
   padding?: 'none' | 'sm' | 'md' | 'lg'
   children?: React.ReactNode
@@ -20,40 +19,33 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     ...props
   }, ref) => {
     const variants = {
-      default: 'bg-white border border-slate-200/60 shadow-card',
-      elevated: 'bg-white border border-slate-200/40 shadow-soft-lg',
-      outline: 'bg-white/50 border-2 border-slate-200',
-      ghost: 'bg-slate-50/50',
-      gradient: 'bg-gradient-to-br from-white to-slate-50 border border-slate-200/60 shadow-card',
+      default: 'bg-white border border-slate-200',
+      elevated: 'bg-white border border-slate-200 shadow-sm',
+      outline: 'bg-white border-2 border-slate-200',
+      ghost: 'bg-slate-50 border border-slate-100',
     }
 
     const paddings = {
       none: '',
       sm: 'p-4',
-      md: 'p-6',
-      lg: 'p-8',
+      md: 'p-5',
+      lg: 'p-6',
     }
 
-    const Component = interactive ? motion.div : 'div'
-
     return (
-      <Component
+      <div
         ref={ref}
-        {...(interactive ? {
-          whileHover: { y: -4, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 20px 60px rgba(0, 0, 0, 0.12)' },
-          transition: { duration: 0.2 }
-        } : {})}
         className={cn(
-          'rounded-2xl',
+          'rounded-lg',
           variants[variant],
           paddings[padding],
-          interactive && 'cursor-pointer transition-shadow',
+          interactive && 'cursor-pointer transition-all duration-150 hover:border-slate-300 hover:shadow-md',
           className
         )}
         {...props}
       >
         {children}
-      </Component>
+      </div>
     )
   }
 )

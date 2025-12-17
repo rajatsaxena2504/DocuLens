@@ -1,43 +1,46 @@
-# DocuGen - AI-Powered Documentation Generator
+# DocuLens - AI-Powered SDLC Documentation Assistant
 
-DocuGen is a full-stack application that automatically generates professional documentation for your codebase using AI. Simply provide a GitHub repository URL, select a documentation template, and let AI analyze your code to generate comprehensive documentation.
+DocuLens is a full-stack application that automatically generates professional documentation for your software projects across the entire SDLC lifecycle. Upload code, connect GitHub repositories, and let AI generate comprehensive documentation tailored to each development stage.
 
-## Features
+## ✨ Features
 
-- **GitHub Integration**: Analyze any public GitHub repository by URL
-- **Multiple AI Providers**: Supports Google Gemini (primary) and Anthropic Claude (fallback)
-- **Template Library**: Pre-built templates for various documentation types:
-  - Requirements Document
-  - Design Document
-  - Technical Specification
-  - API Documentation
-  - User Guide
-  - README
-  - Developer Guide
+### Core Features
+- **SDLC Stage-Based Documentation**: Organize docs by lifecycle stages (Requirements, Design, Development, Testing, Deployment, Maintenance)
+- **Multi-Repository Projects**: Link multiple repositories (frontend, backend, API) to a single project
+- **Smart Code Analysis**: Automatically detects languages, frameworks, APIs, and project structure
+- **AI-Powered Generation**: Generate professional documentation using your preferred AI provider
 - **Human-in-the-Loop**: Review and customize AI-suggested sections before generation
-- **Section Editing**: Inline editing of section titles and descriptions
-- **Drag & Drop Reordering**: Reorganize sections with drag-and-drop
-- **Rich Text Editor**: Edit generated content with full markdown support
-- **Multi-Format Export**: Export to Markdown, DOCX, or PDF
-- **Placeholder Fallback**: Works without AI keys using smart placeholder content
 
-## Tech Stack
+### Document Editor
+- **Real-time Progress**: Visual progress bar showing generation status for each section
+- **Prompt Editing**: Customize prompts per section for fine-tuned content generation
+- **Rich Text Editor**: Edit generated content with full markdown support
+- **Section Reordering**: Drag-and-drop to reorganize sections
+- **Multi-Format Export**: Export to Markdown, DOCX, or PDF
+
+### AI Providers (Priority Order)
+1. **Ollama / LM Studio** - Local models (highest priority)
+2. **Databricks Foundation Models** - Enterprise AI
+3. **Google Gemini** - Fast, free tier available
+4. **Anthropic Claude** - High quality output
+5. **Placeholder Content** - Smart fallback when no AI available
+
+## 🛠 Tech Stack
 
 ### Backend
 - **FastAPI** - Modern Python web framework
-- **SQLAlchemy** - ORM with SQLite (dev) / PostgreSQL (prod) support
-- **Google Generative AI** - Gemini API integration
-- **Anthropic** - Claude API integration (fallback)
+- **SQLAlchemy** - ORM with SQLite/PostgreSQL support
+- **Multi-Provider AI** - Ollama, Databricks, Gemini, Anthropic
 
 ### Frontend
 - **React 18** + TypeScript
 - **Vite** - Build tool
-- **TailwindCSS** - Styling
+- **TailwindCSS** - Styling with custom coral/rose theme
 - **React Query** - Server state management
-- **dnd-kit** - Drag and drop
+- **Framer Motion** - Animations
 - **TipTap** - Rich text editor
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -46,8 +49,8 @@ DocuGen is a full-stack application that automatically generates professional do
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/docugen.git
-cd docugen
+git clone https://github.com/rajatsaxena2504/DocuLens.git
+cd DocuLens
 ```
 
 ### 2. Set up environment variables
@@ -55,23 +58,15 @@ cd docugen
 cp .env.example .env
 ```
 
-Edit `.env` and add your API keys:
-```env
-GEMINI_API_KEY=your-gemini-api-key      # Get from https://aistudio.google.com/app/apikey
-ANTHROPIC_API_KEY=your-anthropic-key    # Optional fallback
-```
+Edit `.env` with your preferred AI provider (see [AI Configuration](#ai-configuration) below).
 
 ### 3. Start the Backend
 ```bash
 cd backend
 pip install -r requirements.txt
+python -m app.data.seed  # Seed templates and sections
 uvicorn app.main:app --reload --port 8000
 ```
-
-The backend will:
-- Create SQLite database automatically
-- Seed default templates and sections
-- Start on http://localhost:8000
 
 ### 4. Start the Frontend
 ```bash
@@ -82,42 +77,61 @@ npm run dev
 
 Frontend runs on http://localhost:5173
 
-## Usage
+## 📖 Usage
 
-1. **Enter GitHub URL**: Paste any public GitHub repository URL
-2. **Select Template**: Choose a documentation template (or upload your own)
-3. **Review Sections**: AI suggests relevant sections based on code analysis
-4. **Customize**: Edit section titles, descriptions, reorder, add/remove
-5. **Generate**: AI generates content for each section
-6. **Edit & Export**: Fine-tune content and export to your preferred format
+1. **Create Project**: Name your SDLC project
+2. **Add Repositories**: Upload code or connect GitHub repos (frontend, backend, etc.)
+3. **Select Stage**: Choose the SDLC stage (Requirements, Design, Development, etc.)
+4. **Pick Template**: Select a documentation template for that stage
+5. **Review Sections**: AI suggests relevant sections based on code analysis
+6. **Generate**: Click "Generate All" to create content for all sections
+7. **Refine**: Edit prompts and regenerate individual sections as needed
+8. **Export**: Download as Markdown, DOCX, or PDF
 
-## API Endpoints
+## ⚙️ AI Configuration
 
-### Documents
-- `GET /api/documents` - List all documents
-- `POST /api/documents` - Create new document
-- `GET /api/documents/{id}` - Get document with sections
-- `PUT /api/documents/{id}` - Update document
+Configure your preferred AI provider in `.env`. DocuLens uses the first available provider:
 
-### Generation
-- `POST /api/generation/documents/{id}/generate` - Generate all sections
-- `POST /api/generation/documents/{id}/sections/{section_id}/generate` - Regenerate specific section
-- `GET /api/generation/documents/{id}/export?format=markdown|docx|pdf` - Export document
+### Option 1: Ollama / LM Studio (Local - Recommended for Privacy)
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+```
+For LM Studio (OpenAI-compatible):
+```env
+OLLAMA_BASE_URL=http://localhost:1234/v1
+OLLAMA_MODEL=your-loaded-model
+```
 
-### Templates
-- `GET /api/templates` - List all templates
-- `GET /api/templates/{id}` - Get template with default sections
+### Option 2: Databricks Foundation Models
+```env
+DATABRICKS_HOST=https://your-workspace.cloud.databricks.com
+DATABRICKS_TOKEN=your-personal-access-token
+DATABRICKS_MODEL=databricks-meta-llama-3-1-70b-instruct
+```
 
-## Project Structure
+### Option 3: Google Gemini
+```env
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.0-flash
+```
+
+### Option 4: Anthropic Claude
+```env
+ANTHROPIC_API_KEY=your-anthropic-api-key
+ANTHROPIC_MODEL=claude-3-haiku-20240307
+```
+
+## 📁 Project Structure
 
 ```
-docugen/
+DocuLens/
 ├── backend/
 │   ├── app/
 │   │   ├── api/           # API route handlers
 │   │   ├── models/        # SQLAlchemy models
 │   │   ├── schemas/       # Pydantic schemas
-│   │   ├── services/      # Business logic (AI, generation)
+│   │   ├── services/      # AI service, code analyzer, generator
 │   │   ├── data/          # Seed data (templates, sections)
 │   │   └── config.py      # Configuration
 │   └── requirements.txt
@@ -125,7 +139,7 @@ docugen/
 │   ├── src/
 │   │   ├── api/           # API client
 │   │   ├── components/    # React components
-│   │   ├── context/       # React context (auth, session)
+│   │   ├── context/       # React context (auth, project)
 │   │   ├── hooks/         # Custom hooks
 │   │   ├── pages/         # Page components
 │   │   └── types/         # TypeScript types
@@ -134,43 +148,41 @@ docugen/
 └── README.md
 ```
 
-## Configuration
+## 🔧 Configuration Reference
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GEMINI_API_KEY` | Google Gemini API key (primary AI) | Recommended |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API key (fallback) | Optional |
-| `DATABASE_URL` | PostgreSQL URL (defaults to SQLite) | Optional |
-| `SECRET_KEY` | JWT secret key | Yes |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OLLAMA_BASE_URL` | Ollama/LM Studio endpoint | - |
+| `OLLAMA_MODEL` | Local model name | `llama3.2` |
+| `DATABRICKS_HOST` | Databricks workspace URL | - |
+| `DATABRICKS_TOKEN` | Databricks access token | - |
+| `DATABRICKS_MODEL` | Model serving endpoint | `databricks-meta-llama-3-1-70b-instruct` |
+| `GEMINI_API_KEY` | Google Gemini API key | - |
+| `GEMINI_MODEL` | Gemini model name | `gemini-2.0-flash` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | - |
+| `ANTHROPIC_MODEL` | Claude model name | `claude-3-haiku-20240307` |
+| `DATABASE_URL` | Database connection | SQLite (dev) |
+| `SECRET_KEY` | JWT secret | Change in production |
 | `GITHUB_TOKEN` | For private repos | Optional |
 
-## AI Provider Priority
+## 📡 API Endpoints
 
-DocuGen uses a fallback chain for AI generation:
-1. **Gemini** (if `GEMINI_API_KEY` set) - Fast, free tier available
-2. **Anthropic Claude** (if `ANTHROPIC_API_KEY` set) - High quality
-3. **Placeholder Content** - Smart templates when no AI available
+### Projects
+- `GET /api/sdlc-projects` - List SDLC projects
+- `POST /api/sdlc-projects` - Create project
+- `POST /api/sdlc-projects/{id}/repositories` - Add repository
 
-## Development
+### Documents
+- `GET /api/documents` - List documents
+- `POST /api/documents` - Create document
+- `GET /api/documents/{id}` - Get document with sections
 
-### Running Tests
-```bash
-# Backend
-cd backend
-pytest
+### Generation
+- `POST /api/generation/documents/{id}/generate` - Generate all sections
+- `POST /api/generation/documents/{id}/sections/{section_id}/generate` - Regenerate section with custom prompt
+- `GET /api/generation/documents/{id}/export?format=markdown|docx|pdf` - Export
 
-# Frontend
-cd frontend
-npm run lint
-```
-
-### Database Migrations
-```bash
-cd backend
-alembic upgrade head
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -178,12 +190,11 @@ alembic upgrade head
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- UI components inspired by [shadcn/ui](https://ui.shadcn.com/)
-- AI powered by [Google Gemini](https://ai.google.dev/) and [Anthropic Claude](https://anthropic.com/)
+- Built with [FastAPI](https://fastapi.tiangolo.com/) and [React](https://react.dev/)
+- AI powered by [Ollama](https://ollama.ai/), [Databricks](https://databricks.com/), [Google Gemini](https://ai.google.dev/), and [Anthropic Claude](https://anthropic.com/)

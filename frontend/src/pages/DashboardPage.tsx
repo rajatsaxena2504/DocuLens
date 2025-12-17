@@ -236,7 +236,7 @@ export default function DashboardPage() {
             <Link to="/projects/new">
               <Card
                 interactive
-                variant="gradient"
+                variant="elevated"
                 className="group relative overflow-hidden"
               >
                 <div className="flex items-center gap-5">
@@ -259,7 +259,7 @@ export default function DashboardPage() {
             <Link to="/documents">
               <Card
                 interactive
-                variant="gradient"
+                variant="elevated"
                 className="group relative overflow-hidden"
               >
                 <div className="flex items-center gap-5">

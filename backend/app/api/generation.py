@@ -15,6 +15,7 @@ router = APIRouter()
 class GenerateRequest(BaseModel):
     """Request body for document generation."""
     repository_ids: Optional[list[uuid.UUID]] = None  # Optional: specific repos to include
+    custom_prompt: Optional[str] = None  # Optional: custom prompt for section regeneration
 
 
 @router.post("/documents/{document_id}/generate")
@@ -92,14 +93,18 @@ def regenerate_section(
         )
 
     repository_ids = None
-    if request and request.repository_ids:
-        repository_ids = [str(rid) for rid in request.repository_ids]
+    custom_prompt = None
+    if request:
+        if request.repository_ids:
+            repository_ids = [str(rid) for rid in request.repository_ids]
+        custom_prompt = request.custom_prompt
 
     generator = DocumentGenerator(db)
     result = generator.regenerate_section(
         str(document_id),
         str(section_id),
         repository_ids=repository_ids,
+        custom_prompt=custom_prompt,
     )
 
     return result

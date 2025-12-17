@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Sparkles, FolderOpen, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { ArrowLeft, FolderOpen, ArrowRight } from 'lucide-react'
 import Layout from '@/components/common/Layout'
 import Input from '@/components/common/Input'
-import { Card } from '@/components/common/Card'
+import Button from '@/components/common/Button'
 import { useCreateSDLCProject } from '@/hooks/useSDLCProjects'
 import { cn } from '@/utils/helpers'
 
@@ -12,9 +12,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.1 },
   },
 }
 
@@ -23,9 +21,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.5,
-    },
+    transition: { duration: 0.4 },
   },
 }
 
@@ -68,139 +64,104 @@ export default function NewProjectPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="mx-auto max-w-2xl"
+        className="mx-auto max-w-2xl py-8"
       >
-        {/* Header */}
-        <motion.div variants={itemVariants} className="mb-8">
+        {/* Back link */}
+        <motion.div variants={itemVariants}>
           <Link
             to="/projects"
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-8"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Projects
           </Link>
+        </motion.div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-lg shadow-primary-500/25">
+        {/* Header - Centered */}
+        <motion.div variants={itemVariants} className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-500 shadow-lg shadow-primary-500/30">
               <FolderOpen className="h-7 w-7 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Create New Project</h1>
-              <p className="text-slate-500">Start a new SDLC documentation project</p>
-            </div>
           </div>
+          <h1 className="text-2xl font-bold text-slate-900">Create New Project</h1>
+          <p className="text-sm text-slate-500 mt-1">Start a new SDLC documentation project</p>
         </motion.div>
 
-        {/* Main Form Card */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated" padding="lg">
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-6">
-                <Input
-                  id="name"
-                  label="Project Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="My Software Project"
-                  required
-                  autoFocus
-                />
+        {/* Form Card */}
+        <motion.div variants={itemVariants} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              id="name"
+              label="Project Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Software Project"
+              required
+              autoFocus
+            />
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Description <span className="text-slate-400">(optional)</span>
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of your project and its purpose..."
-                    className={cn(
-                      'w-full rounded-xl border bg-white text-slate-900',
-                      'placeholder:text-slate-400',
-                      'transition-all duration-200',
-                      'focus:outline-none',
-                      'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10',
-                      'px-4 py-3'
-                    )}
-                    rows={3}
-                  />
-                </div>
-
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-50 border border-red-200 rounded-xl"
-                  >
-                    <p className="text-sm text-red-600">{error}</p>
-                  </motion.div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Description <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of your project..."
+                className={cn(
+                  'w-full rounded-lg border border-slate-200 bg-white text-slate-900',
+                  'placeholder:text-slate-400',
+                  'transition-colors duration-150',
+                  'hover:border-slate-300',
+                  'focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
+                  'px-4 py-3'
                 )}
-
-                <button
-                  type="submit"
-                  disabled={createProject.isPending || !name.trim()}
-                  className={cn(
-                    'w-full flex items-center justify-center gap-2 px-5 py-3',
-                    'bg-gradient-to-r from-primary-500 to-accent-500',
-                    'text-white font-medium rounded-xl',
-                    'shadow-lg shadow-primary-500/25',
-                    'hover:shadow-xl hover:shadow-primary-500/30',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                    'transition-all duration-200'
-                  )}
-                >
-                  {createProject.isPending ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      Create Project
-                      <ArrowRight className="h-5 w-5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </Card>
-        </motion.div>
-
-        {/* Help Card */}
-        <motion.div variants={itemVariants} className="mt-6">
-          <Card variant="ghost" className="bg-slate-50/50">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-md shadow-primary-500/20">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-1">What's next?</h3>
-                <p className="text-sm text-slate-600">
-                  After creating your project, you can add GitHub repositories and start generating
-                  AI-powered documentation for each phase of your software development lifecycle -
-                  from requirements to deployment and maintenance.
-                </p>
-              </div>
+                rows={3}
+              />
             </div>
-          </Card>
+
+            {error && (
+              <div className="p-3 bg-error-50 border border-error-200 rounded-lg">
+                <p className="text-sm text-error-600">{error}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              isLoading={createProject.isPending}
+              disabled={!name.trim()}
+              rightIcon={<ArrowRight className="h-4 w-4" />}
+            >
+              Create Project
+            </Button>
+          </form>
         </motion.div>
 
-        {/* Steps Preview */}
+        {/* Help text */}
+        <motion.div variants={itemVariants} className="mt-6 bg-slate-50 rounded-xl p-5 border border-slate-200">
+          <h3 className="font-semibold text-slate-900 mb-1.5">What's next?</h3>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            After creating your project, you can add GitHub repositories and start generating
+            AI-powered documentation for each phase of your software development lifecycle.
+          </p>
+        </motion.div>
+
+        {/* Steps indicator */}
         <motion.div variants={itemVariants} className="mt-8">
-          <h3 className="text-sm font-medium text-slate-700 mb-4">How it works</h3>
-          <div className="flex items-center gap-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">How it works</p>
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
             {[
               { num: 1, label: 'Create Project', active: true },
-              { num: 2, label: 'Add Repositories' },
-              { num: 3, label: 'Generate Docs' },
+              { num: 2, label: 'Add Repositories', active: false },
+              { num: 3, label: 'Generate Docs', active: false },
             ].map((step, index) => (
-              <div key={step.num} className="flex items-center gap-4">
+              <div key={step.num} className="flex items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <div className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold',
+                    'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors',
                     step.active
                       ? 'bg-primary-500 text-white'
                       : 'bg-slate-100 text-slate-400'
@@ -208,7 +169,7 @@ export default function NewProjectPage() {
                     {step.num}
                   </div>
                   <span className={cn(
-                    'text-sm',
+                    'text-sm hidden sm:inline',
                     step.active ? 'text-slate-900 font-medium' : 'text-slate-400'
                   )}>
                     {step.label}
