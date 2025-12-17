@@ -142,7 +142,7 @@ class AIService:
                     "temperature": 0.7,
                     "max_tokens": 4096,
                 },
-                timeout=120,
+                timeout=300,
             )
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
@@ -158,7 +158,7 @@ class AIService:
                     "prompt": full_prompt,
                     "stream": False,
                 },
-                timeout=120,
+                timeout=300,
             )
             response.raise_for_status()
             return response.json()["response"]
