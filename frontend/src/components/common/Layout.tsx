@@ -12,6 +12,8 @@ import {
   User,
   Settings,
   BookOpen,
+  Library,
+  Layers,
 } from 'lucide-react'
 import { cn } from '@/utils/helpers'
 import ProjectSidebar from '@/components/project/ProjectSidebar'
@@ -48,6 +50,11 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Documents', href: '/documents', icon: FileText },
+  ]
+
+  const libraryNavigation = [
+    { name: 'Template Library', href: '/library/templates', icon: Library },
+    { name: 'Section Library', href: '/library/sections', icon: Layers },
   ]
 
   return (
@@ -90,25 +97,55 @@ export default function Layout({ children }: LayoutProps) {
           ) : (
             <>
               {/* Navigation */}
-              <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-                {navigation.map((item) => {
-                  const isActive = location.pathname === item.href
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={cn(
-                        'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-primary-50 text-primary-700'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                      )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
-                    </Link>
-                  )
-                })}
+              <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto">
+                {/* Main navigation */}
+                <div className="space-y-0.5">
+                  {navigation.map((item) => {
+                    const isActive = location.pathname === item.href
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                {/* Library section */}
+                <div>
+                  <p className="px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wide">
+                    Library
+                  </p>
+                  <div className="space-y-0.5">
+                    {libraryNavigation.map((item) => {
+                      const isActive = location.pathname === item.href
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                            isActive
+                              ? 'bg-primary-50 text-primary-700'
+                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
               </nav>
 
               {/* Help section */}

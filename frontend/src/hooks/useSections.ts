@@ -37,10 +37,39 @@ export function useCreateSection() {
   })
 }
 
+export function useUpdateSectionDescription() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ sectionId, description }: { sectionId: string; description: string }) =>
+      sectionsApi.updateDescription(sectionId, description),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sections'] })
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-library'] })
+      queryClient.invalidateQueries({ queryKey: ['sections-library'] })
+    },
+  })
+}
+
+export function useSectionsLibrary() {
+  return useQuery({
+    queryKey: ['sections-library'],
+    queryFn: () => sectionsApi.listWithTemplates(),
+  })
+}
+
 export function useTemplates() {
   return useQuery({
     queryKey: ['templates'],
     queryFn: () => templatesApi.list(),
+  })
+}
+
+export function useTemplatesLibrary() {
+  return useQuery({
+    queryKey: ['templates-library'],
+    queryFn: () => templatesApi.listWithSections(),
   })
 }
 

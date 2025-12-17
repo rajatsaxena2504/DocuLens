@@ -1,6 +1,31 @@
 import client from './client'
 import type { Section, DocumentType, DocumentTypeWithSections } from '@/types'
 
+export interface SectionWithTemplates extends Section {
+  templates_using: Array<{
+    id: string
+    name: string
+    stage: string | null
+  }>
+  template_count: number
+}
+
+export interface TemplateWithSections {
+  id: string
+  name: string
+  description: string | null
+  stage: string | null
+  is_system: boolean
+  created_at: string | null
+  sections: Array<{
+    id: string
+    name: string
+    description: string
+    default_order: number
+    is_system: boolean
+  }>
+}
+
 export const sectionsApi = {
   list: async (docTypeId?: string): Promise<Section[]> => {
     const response = await client.get<Section[]>('/sections', {
@@ -27,6 +52,16 @@ export const sectionsApi = {
   delete: async (id: string): Promise<void> => {
     await client.delete(`/sections/${id}`)
   },
+
+  updateDescription: async (id: string, description: string): Promise<Section> => {
+    const response = await client.patch<Section>(`/sections/${id}/description`, { description })
+    return response.data
+  },
+
+  listWithTemplates: async (): Promise<SectionWithTemplates[]> => {
+    const response = await client.get<SectionWithTemplates[]>('/sections/library/with-templates')
+    return response.data
+  },
 }
 
 export const templatesApi = {
@@ -39,6 +74,11 @@ export const templatesApi = {
 
   listByStage: async (stageId: string): Promise<DocumentType[]> => {
     const response = await client.get<DocumentType[]>(`/templates/by-stage/${stageId}`)
+    return response.data
+  },
+
+  listWithSections: async (): Promise<TemplateWithSections[]> => {
+    const response = await client.get<TemplateWithSections[]>('/templates/library/with-sections')
     return response.data
   },
 

@@ -32,6 +32,50 @@ def list_templates(
     return templates
 
 
+@router.get("/library/with-sections", response_model=List[dict])
+def list_templates_with_sections(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all templates with their sections for the template library view."""
+    templates = db.query(DocumentType).filter(
+        (DocumentType.is_system == True) | (DocumentType.user_id == current_user.id)
+    ).all()
+
+    result = []
+    for template in templates:
+        # Get sections for this template
+        mappings = (
+            db.query(DocumentTypeSection)
+            .filter(DocumentTypeSection.document_type_id == template.id)
+            .order_by(DocumentTypeSection.default_order)
+            .all()
+        )
+
+        sections = [
+            {
+                "id": str(m.section.id),
+                "name": m.section.name,
+                "description": m.section.description,
+                "default_order": m.default_order,
+                "is_system": m.section.is_system,
+            }
+            for m in mappings
+        ]
+
+        result.append({
+            "id": str(template.id),
+            "name": template.name,
+            "description": template.description,
+            "stage": template.stage.name if template.stage else None,
+            "is_system": template.is_system,
+            "created_at": template.created_at.isoformat() if template.created_at else None,
+            "sections": sections,
+        })
+
+    return result
+
+
 @router.get("/by-stage/{stage_id}", response_model=List[DocumentTypeResponse])
 def list_templates_by_stage(
     stage_id: uuid.UUID,

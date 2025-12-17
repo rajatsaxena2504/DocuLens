@@ -15,6 +15,8 @@ import NewDocumentPage from '@/pages/NewDocumentPage'
 import SectionReviewPage from '@/pages/SectionReviewPage'
 import DocumentEditorPage from '@/pages/DocumentEditorPage'
 import GenerationProgressPage from '@/pages/GenerationProgressPage'
+import TemplateLibraryPage from '@/pages/TemplateLibraryPage'
+import SectionLibraryPage from '@/pages/SectionLibraryPage'
 
 // AUTH DISABLED: ProtectedRoute wrapper commented out
 /*
@@ -70,6 +72,10 @@ function AppRoutes() {
       <Route path="/documents/:documentId/review" element={<SectionReviewPage />} />
       <Route path="/documents/:documentId/edit" element={<DocumentEditorPage />} />
       <Route path="/documents/:documentId/generating" element={<GenerationProgressPage />} />
+
+      {/* Library */}
+      <Route path="/library/templates" element={<TemplateLibraryPage />} />
+      <Route path="/library/sections" element={<SectionLibraryPage />} />
 
       {/* Redirects for old routes */}
       <Route path="/login" element={<Navigate to="/" replace />} />

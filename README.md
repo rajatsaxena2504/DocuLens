@@ -11,6 +11,11 @@ DocuLens is a full-stack application that automatically generates professional d
 - **AI-Powered Generation**: Generate professional documentation using your preferred AI provider
 - **Human-in-the-Loop**: Review and customize AI-suggested sections before generation
 
+### Template & Section Libraries
+- **Template Library**: Browse all document templates organized by SDLC stage, view sections, and edit section descriptions centrally
+- **Section Library**: View all available sections and see which templates use them (read-only reference)
+- **Central Description Management**: Edit section descriptions once in Template Library - changes propagate to all documents using that section
+
 ### Document Editor
 - **Real-time Progress**: Visual progress bar showing generation status for each section
 - **Prompt Editing**: Customize prompts per section for fine-tuned content generation
@@ -181,6 +186,11 @@ DocuLens/
 - `POST /api/generation/documents/{id}/generate` - Generate all sections
 - `POST /api/generation/documents/{id}/sections/{section_id}/generate` - Regenerate section with custom prompt
 - `GET /api/generation/documents/{id}/export?format=markdown|docx|pdf` - Export
+
+### Libraries
+- `GET /api/templates/library/with-sections` - List all templates with their sections
+- `GET /api/sections/library/with-templates` - List all sections with template usage
+- `PATCH /api/sections/{id}/description` - Update section description centrally
 
 ## 🤝 Contributing
 
