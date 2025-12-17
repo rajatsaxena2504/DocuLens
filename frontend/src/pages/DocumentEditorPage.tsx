@@ -231,22 +231,8 @@ export default function DocumentEditorPage() {
     }, 100)
   }
 
-  if (isLoading || isAutoGenerating) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary-600" />
-          <p className="mt-4 font-medium text-gray-900">
-            {isAutoGenerating ? 'Generating documentation content...' : 'Loading document...'}
-          </p>
-          {isAutoGenerating && (
-            <p className="mt-1 text-sm text-gray-500">
-              AI is analyzing your code and creating content for each section
-            </p>
-          )}
-        </div>
-      </div>
-    )
+  if (isLoading) {
+    return <PageLoading />
   }
 
   if (!document) {
