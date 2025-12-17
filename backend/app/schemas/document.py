@@ -5,8 +5,10 @@ from pydantic import BaseModel
 
 
 class DocumentCreate(BaseModel):
-    project_id: UUID
+    project_id: Optional[UUID] = None  # Repository ID (optional in SDLC flow)
+    sdlc_project_id: Optional[UUID] = None  # SDLC Project ID
     document_type_id: Optional[UUID] = None
+    stage_id: Optional[UUID] = None
     title: str
 
 
@@ -45,8 +47,10 @@ class DocumentSectionResponse(BaseModel):
 
 class DocumentResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    project_id: Optional[UUID] = None
+    sdlc_project_id: Optional[UUID] = None
     document_type_id: Optional[UUID]
+    stage_id: Optional[UUID] = None
     title: str
     status: str
     created_at: datetime

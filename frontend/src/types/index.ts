@@ -11,7 +11,75 @@ export interface AuthResponse {
   token_type: string
 }
 
-// Project types
+// ============ SDLC Types ============
+
+export interface SDLCStage {
+  id: string
+  name: string
+  description: string | null
+  display_order: number
+  icon: string | null
+  color: string | null
+}
+
+export interface SDLCProject {
+  id: string
+  name: string
+  description: string | null
+  status: 'active' | 'archived'
+  created_at: string
+  updated_at: string
+}
+
+export interface SDLCProjectWithRepositories extends SDLCProject {
+  repositories: Repository[]
+}
+
+export interface SDLCProjectDetail extends SDLCProjectWithRepositories {
+  stage_document_counts?: Record<string, number>
+}
+
+export interface Repository {
+  id: string
+  name: string
+  description: string | null
+  source_type: 'upload' | 'github'
+  repo_type: string | null  // 'frontend', 'backend', 'api', etc.
+  github_url: string | null
+  analysis_data: CodeAnalysis | null
+  created_at: string
+  updated_at: string
+}
+
+// ============ SDLC Request Types ============
+
+export interface CreateSDLCProjectRequest {
+  name: string
+  description?: string
+}
+
+export interface UpdateSDLCProjectRequest {
+  name?: string
+  description?: string
+  status?: 'active' | 'archived'
+}
+
+export interface AddRepositoryRequest {
+  github_url: string
+  name?: string
+  description?: string
+  repo_type?: string
+}
+
+export interface UpdateRepositoryRequest {
+  name?: string
+  description?: string
+  repo_type?: string
+}
+
+// ============ Legacy Project Types (now Repository) ============
+
+// Project types (kept for backward compatibility, represents a single repository)
 export interface Project {
   id: string
   name: string
@@ -51,6 +119,7 @@ export interface DocumentType {
   name: string
   description: string | null
   is_system: boolean
+  stage_id: string | null
   created_at: string
 }
 
@@ -80,8 +149,10 @@ export interface SectionSuggestion {
 // Document types
 export interface Document {
   id: string
-  project_id: string
+  project_id: string | null  // Repository ID (may be null in SDLC flow)
+  sdlc_project_id: string | null  // SDLC Project ID
   document_type_id: string | null
+  stage_id: string | null
   title: string
   status: 'draft' | 'sections_approved' | 'generating' | 'completed'
   created_at: string
@@ -130,6 +201,7 @@ export interface GitHubProjectRequest {
 export interface CreateDocumentRequest {
   project_id: string
   document_type_id?: string
+  stage_id?: string
   title: string
 }
 

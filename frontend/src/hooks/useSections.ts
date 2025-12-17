@@ -40,7 +40,15 @@ export function useCreateSection() {
 export function useTemplates() {
   return useQuery({
     queryKey: ['templates'],
-    queryFn: templatesApi.list,
+    queryFn: () => templatesApi.list(),
+  })
+}
+
+export function useTemplatesByStage(stageId: string | undefined) {
+  return useQuery({
+    queryKey: ['templates', 'by-stage', stageId],
+    queryFn: () => templatesApi.listByStage(stageId!),
+    enabled: !!stageId,
   })
 }
 

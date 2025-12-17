@@ -29,6 +29,7 @@ import {
   Layers,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import SectionPlanItem from '@/components/sections/SectionPlanItem'
@@ -228,24 +229,26 @@ export default function SectionReviewPage() {
 
   if (docLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Layout>
         <PageLoading />
-      </div>
+      </Layout>
     )
   }
 
   if (!document) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Card variant="elevated" className="max-w-md mx-auto text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
-            <FileCode className="h-8 w-8 text-slate-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Document not found</h2>
-          <p className="text-slate-500 mb-6">The document you're looking for doesn't exist or was deleted.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </Card>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center py-16">
+          <Card variant="elevated" className="max-w-md mx-auto text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
+              <FileCode className="h-8 w-8 text-slate-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Document not found</h2>
+            <p className="text-slate-500 mb-6">The document you're looking for doesn't exist or was deleted.</p>
+            <Button onClick={() => navigate('/')}>Go Home</Button>
+          </Card>
+        </div>
+      </Layout>
     )
   }
 
@@ -254,17 +257,17 @@ export default function SectionReviewPage() {
   const isAnalyzing = suggestionsLoading || analysisLoading
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <Layout>
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="mx-auto max-w-4xl px-4 py-8"
+        className="mx-auto max-w-4xl"
       >
         {/* Header */}
         <motion.div variants={itemVariants} className="mb-8">
           <Link
-            to={`/projects/${document.project_id}`}
+            to={`/projects/${document.sdlc_project_id || document.project_id}`}
             className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -471,7 +474,7 @@ export default function SectionReviewPage() {
         onAdd={handleAddSection}
         existingSectionIds={sections.map((s) => s.section_id || '').filter(Boolean)}
       />
-    </div>
+    </Layout>
   )
 }
 

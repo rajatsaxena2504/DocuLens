@@ -139,7 +139,7 @@ export default function TemplateSelectionPage() {
 
   const { data: templates, isLoading: templatesLoading } = useQuery({
     queryKey: ['templates'],
-    queryFn: templatesApi.list,
+    queryFn: () => templatesApi.list(),
   })
 
   const createDocumentMutation = useMutation({

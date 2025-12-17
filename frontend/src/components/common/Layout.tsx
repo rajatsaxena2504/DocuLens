@@ -1,11 +1,11 @@
-import { ReactNode, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { ReactNode, useState, useMemo } from 'react'
+import { Link, useLocation, matchPath } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useProjectContext } from '@/context/ProjectContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText,
-  FolderOpen,
-  LayoutDashboard,
+  FolderKanban,
   LogOut,
   Menu,
   X,
@@ -15,6 +15,8 @@ import {
   Settings,
 } from 'lucide-react'
 import { cn } from '@/utils/helpers'
+import ProjectSidebar from '@/components/project/ProjectSidebar'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 interface LayoutProps {
   children: ReactNode
@@ -23,13 +25,26 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const { breadcrumbItems } = useProjectContext()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
+  // Detect if we're in a project context (URL matches /projects/:id/...)
+  const isInProjectContext = useMemo(() => {
+    const projectDetailMatch = matchPath('/projects/:projectId/*', location.pathname)
+    // Don't show project sidebar on the main projects list or new project page
+    if (
+      location.pathname === '/projects' ||
+      location.pathname === '/projects/new'
+    ) {
+      return false
+    }
+    return !!projectDetailMatch
+  }, [location.pathname])
+
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Projects', href: '/projects', icon: FolderOpen },
-    { name: 'Documents', href: '/documents', icon: FileText },
+    { name: 'SDLC Projects', href: '/projects', icon: FolderKanban },
+    { name: 'All Documents', href: '/documents', icon: FileText },
   ]
 
   return (
@@ -68,7 +83,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
               </div>
-              <span className="text-xl font-bold text-white">DocuGen</span>
+              <span className="text-xl font-bold text-white">DocuLens</span>
             </Link>
             <button
               className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden transition-colors"
@@ -78,55 +93,64 @@ export default function Layout({ children }: LayoutProps) {
             </button>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-thin">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-                    isActive
-                      ? 'bg-gradient-to-r from-primary-500/20 to-primary-500/10 text-white'
-                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                  )}
-                >
-                  <div className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-primary-500/20 text-primary-400'
-                      : 'bg-slate-800/50 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
-                  )}>
-                    <item.icon className="h-5 w-5" />
-                  </div>
-                  <span className="flex-1">{item.name}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="h-2 w-2 rounded-full bg-primary-400"
-                    />
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
+          {/* Conditional sidebar content */}
+          {isInProjectContext ? (
+            // Project context sidebar
+            <ProjectSidebar className="flex-1" />
+          ) : (
+            // Main navigation sidebar
+            <>
+              {/* Navigation */}
+              <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-thin">
+                {navigation.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={cn(
+                        'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-primary-500/20 to-primary-500/10 text-white'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                      )}
+                    >
+                      <div className={cn(
+                        'flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+                        isActive
+                          ? 'bg-primary-500/20 text-primary-400'
+                          : 'bg-slate-800/50 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
+                      )}>
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                      <span className="flex-1">{item.name}</span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeNav"
+                          className="h-2 w-2 rounded-full bg-primary-400"
+                        />
+                      )}
+                    </Link>
+                  )
+                })}
+              </nav>
 
-          {/* Pro Badge / Feature highlight */}
-          <div className="px-4 py-3">
-            <div className="rounded-xl bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-primary-500 to-accent-500">
-                  <Sparkles className="h-4 w-4 text-white" />
+              {/* Pro Badge / Feature highlight */}
+              <div className="px-4 py-3">
+                <div className="rounded-xl bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20 p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-primary-500 to-accent-500">
+                      <Sparkles className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-white">AI Powered</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    AI-powered SDLC documentation
+                  </p>
                 </div>
-                <span className="text-sm font-semibold text-white">AI Powered</span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Generate professional docs with Gemini AI
-              </p>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* User section */}
           <div className="border-t border-slate-700/50 p-4">
@@ -195,7 +219,11 @@ export default function Layout({ children }: LayoutProps) {
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Breadcrumb or page title can go here */}
+          {/* Breadcrumb navigation */}
+          {breadcrumbItems.length > 0 && (
+            <Breadcrumb items={breadcrumbItems} />
+          )}
+
           <div className="flex-1" />
 
           {/* Right side actions */}

@@ -59,7 +59,7 @@ export default function RegisterPage() {
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-white">DocuGen</span>
+              <span className="text-2xl font-bold text-white">DocuLens</span>
             </div>
 
             <h1 className="text-4xl font-bold text-white mb-4">
@@ -111,7 +111,7 @@ export default function RegisterPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-accent-500 to-primary-500 shadow-lg">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900">DocuGen</span>
+            <span className="text-xl font-bold text-slate-900">DocuLens</span>
           </div>
 
           <div className="text-center mb-8">

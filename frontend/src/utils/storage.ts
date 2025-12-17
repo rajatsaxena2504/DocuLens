@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'docugen_token'
+const TOKEN_KEY = 'doculens_token'
 
 export const storage = {
   getToken: (): string | null => {

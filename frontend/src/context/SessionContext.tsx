@@ -62,7 +62,7 @@ interface SessionContextType {
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined)
 
-const STORAGE_KEY = 'docugen_session'
+const STORAGE_KEY = 'doculens_session'
 
 // Helper to serialize session (excluding File objects)
 const serializeSession = (documents: SessionDocument[]): string => {

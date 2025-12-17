@@ -43,6 +43,7 @@ class ClaudeService:
         section_description: str,
         code_context: str,
         document_type: str,
+        stage_name: str = None,
     ) -> str:
         """Generate content for a specific documentation section."""
         return self.ai_service.generate_section_content(
@@ -50,4 +51,5 @@ class ClaudeService:
             section_description=section_description,
             code_context=code_context,
             document_type=document_type,
+            stage_name=stage_name,
         )

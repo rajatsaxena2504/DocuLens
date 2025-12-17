@@ -59,7 +59,7 @@ export default function LoginPage() {
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-white">DocuGen</span>
+              <span className="text-2xl font-bold text-white">DocuLens</span>
             </div>
 
             <h1 className="text-4xl font-bold text-white mb-4">
@@ -112,12 +112,12 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-primary-500 to-accent-500 shadow-lg">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900">DocuGen</span>
+            <span className="text-xl font-bold text-slate-900">DocuLens</span>
           </div>
 
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-            <p className="mt-2 text-slate-500">Sign in to continue to DocuGen</p>
+            <p className="mt-2 text-slate-500">Sign in to continue to DocuLens</p>
           </div>
 
           <div className="rounded-2xl bg-white p-8 shadow-xl shadow-slate-200/50 border border-slate-200/60">

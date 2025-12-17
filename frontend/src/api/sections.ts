@@ -30,8 +30,15 @@ export const sectionsApi = {
 }
 
 export const templatesApi = {
-  list: async (): Promise<DocumentType[]> => {
-    const response = await client.get<DocumentType[]>('/templates')
+  list: async (stageId?: string): Promise<DocumentType[]> => {
+    const response = await client.get<DocumentType[]>('/templates', {
+      params: stageId ? { stage_id: stageId } : undefined,
+    })
+    return response.data
+  },
+
+  listByStage: async (stageId: string): Promise<DocumentType[]> => {
+    const response = await client.get<DocumentType[]>(`/templates/by-stage/${stageId}`)
     return response.data
   },
 
@@ -51,7 +58,10 @@ export const templatesApi = {
 }
 
 export const generationApi = {
-  generateDocument: async (documentId: string): Promise<{
+  generateDocument: async (
+    documentId: string,
+    repositoryIds?: string[]
+  ): Promise<{
     document_id: string
     status: string
     results: Array<{
@@ -60,23 +70,29 @@ export const generationApi = {
       success: boolean
       content_id?: string
       error?: string
+      used_placeholder?: boolean
     }>
   }> => {
-    const response = await client.post(`/generation/documents/${documentId}/generate`)
+    const response = await client.post(`/generation/documents/${documentId}/generate`, {
+      repository_ids: repositoryIds,
+    })
     return response.data
   },
 
   regenerateSection: async (
     documentId: string,
-    sectionId: string
+    sectionId: string,
+    repositoryIds?: string[]
   ): Promise<{
     section_id: string
     title: string
     content_id: string
     content: string
+    used_placeholder?: boolean
   }> => {
     const response = await client.post(
-      `/generation/documents/${documentId}/sections/${sectionId}/generate`
+      `/generation/documents/${documentId}/sections/${sectionId}/generate`,
+      { repository_ids: repositoryIds }
     )
     return response.data
   },
@@ -84,5 +100,14 @@ export const generationApi = {
   exportDocument: (documentId: string, format: 'markdown' | 'docx' | 'pdf'): string => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
     return `${API_URL}/api/generation/documents/${documentId}/export?format=${format}`
+  },
+
+  exportProjectBundle: (projectId: string, stageId?: string): string => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    let url = `${API_URL}/api/generation/projects/${projectId}/export-bundle`
+    if (stageId) {
+      url += `?stage_id=${stageId}`
+    }
+    return url
   },
 }

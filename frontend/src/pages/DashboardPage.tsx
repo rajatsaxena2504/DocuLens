@@ -13,10 +13,10 @@ import {
 import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/common/Card'
-import { useProjects } from '@/hooks/useProjects'
+import { useSDLCProjects } from '@/hooks/useSDLCProjects'
 import { useDocuments } from '@/hooks/useDocuments'
 import { PageLoading } from '@/components/common/Loading'
-import { formatDate, getStatusColor, getStatusLabel, cn } from '@/utils/helpers'
+import { formatDate, formatRelativeTime, getStatusColor, getStatusLabel, cn } from '@/utils/helpers'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 
@@ -43,7 +43,7 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const { data: projects, isLoading: projectsLoading } = useProjects()
+  const { data: projects, isLoading: projectsLoading } = useSDLCProjects()
   const { data: documents, isLoading: documentsLoading } = useDocuments()
 
   if (projectsLoading || documentsLoading) {
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                             </p>
                             <div className="flex items-center gap-1.5 text-xs text-slate-400">
                               <Clock className="h-3 w-3" />
-                              {formatDate(project.created_at)}
+                              {formatRelativeTime(project.created_at)}
                             </div>
                           </div>
                         </div>

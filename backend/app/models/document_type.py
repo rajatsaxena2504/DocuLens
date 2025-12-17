@@ -14,10 +14,12 @@ class DocumentType(Base):
     description = Column(Text)
     is_system = Column(Boolean, default=True)
     user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
+    stage_id = Column(GUID(), ForeignKey("sdlc_stages.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     user = relationship("User", back_populates="custom_document_types")
+    stage = relationship("SDLCStage", back_populates="document_types")
     documents = relationship("Document", back_populates="document_type")
     default_sections = relationship(
         "DocumentTypeSection",

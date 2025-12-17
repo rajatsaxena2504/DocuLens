@@ -16,7 +16,7 @@ def find_env_file():
 class Settings(BaseSettings):
     # Database - Use SQLite by default for easy development (no PostgreSQL setup required)
     # Set DATABASE_URL env var to use PostgreSQL in production
-    database_url: str = "sqlite:///./docugen.db"
+    database_url: str = "sqlite:///./doculens.db"
 
     # Security
     secret_key: str = "your-secret-key-change-in-production"
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     max_upload_size: int = 50 * 1024 * 1024  # 50MB
 
     # App settings
-    app_name: str = "DocuGen"
+    app_name: str = "DocuLens"
     debug: bool = False
 
     class Config:

@@ -127,9 +127,28 @@ Only include sections with relevance_score >= 0.5. Return ONLY valid JSON array,
         section_description: str,
         code_context: str,
         document_type: str,
+        stage_name: str = None,
     ) -> str:
         """Generate content for a documentation section."""
-        system_prompt = f"""You are a technical writer creating {document_type} documentation.
+        # Check if this is a multi-repo context
+        is_multi_repo = "multiple repositories" in code_context.lower() or "=== Repository:" in code_context
+
+        # Stage-specific guidance
+        stage_guidance = self._get_stage_guidance(stage_name) if stage_name else ""
+
+        if is_multi_repo:
+            system_prompt = f"""You are a technical writer creating {document_type} documentation for a project with multiple repositories.
+{stage_guidance}
+Write clear, professional documentation that:
+- Is well-structured with proper markdown formatting
+- Covers how different parts of the system (frontend, backend, API, etc.) work together
+- References specific repositories when discussing their code or functionality
+- Is technically accurate based on the code provided
+- Includes cross-repository relationships where relevant
+- Uses code examples from appropriate repositories"""
+        else:
+            system_prompt = f"""You are a technical writer creating {document_type} documentation.
+{stage_guidance}
 Write clear, professional documentation that is:
 - Well-structured with proper markdown formatting
 - Technically accurate based on the code provided
@@ -147,10 +166,71 @@ Write professional documentation content in markdown format. Include:
 - Clear explanations
 - Code examples where helpful
 - Any relevant warnings or notes
+{"- Reference specific repositories when discussing their code" if is_multi_repo else ""}
 
 Do not include the section title as a header (it will be added separately)."""
 
         return self.generate_content(prompt, system_prompt)
+
+    def _get_stage_guidance(self, stage_name: str) -> str:
+        """Get stage-specific writing guidance."""
+        stage_guidance = {
+            "Requirements": """
+This is a REQUIREMENTS stage document. Focus on:
+- Business objectives and stakeholder needs
+- Functional and non-functional requirements
+- User stories and acceptance criteria
+- Scope boundaries and constraints
+- Success metrics and KPIs
+Write for business stakeholders and product managers.""",
+
+            "Design": """
+This is a DESIGN stage document. Focus on:
+- System architecture and component design
+- Data models and database schemas
+- API contracts and interfaces
+- UI/UX design decisions
+- Design patterns and principles used
+Write for architects, senior developers, and technical leads.""",
+
+            "Development": """
+This is a DEVELOPMENT stage document. Focus on:
+- Implementation details and code structure
+- Setup and configuration instructions
+- Coding standards and conventions
+- Development workflows and tools
+- Integration points between components
+Write for developers who will implement and maintain the code.""",
+
+            "Testing": """
+This is a TESTING stage document. Focus on:
+- Test strategies and methodologies
+- Test case specifications
+- Test data requirements
+- Quality metrics and coverage goals
+- Bug tracking and resolution workflows
+Write for QA engineers and developers.""",
+
+            "Deployment": """
+This is a DEPLOYMENT stage document. Focus on:
+- Infrastructure requirements
+- Deployment procedures and checklists
+- Environment configurations
+- Monitoring and alerting setup
+- Rollback procedures
+Write for DevOps engineers and system administrators.""",
+
+            "Maintenance": """
+This is a MAINTENANCE stage document. Focus on:
+- Operational procedures and runbooks
+- Incident response workflows
+- Performance monitoring
+- Upgrade and migration paths
+- Support escalation procedures
+Write for operations teams and support engineers.""",
+        }
+
+        return stage_guidance.get(stage_name, "")
 
 
 # Singleton instance

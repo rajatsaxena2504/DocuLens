@@ -232,5 +232,95 @@
     "name": "Integration Points",
     "description": "Document integration points with external systems, APIs, and services. Include data formats, protocols, and error handling.",
     "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440140",
+    "name": "Test Strategy",
+    "description": "Document the overall testing strategy including types of testing (unit, integration, E2E), test coverage goals, and testing tools.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440141",
+    "name": "Test Cases",
+    "description": "Detailed test cases with test IDs, descriptions, preconditions, test steps, expected results, and actual results.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440142",
+    "name": "Test Environment",
+    "description": "Document test environment setup including hardware, software, data requirements, and configuration needed for testing.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440143",
+    "name": "Quality Metrics",
+    "description": "Define quality metrics and KPIs including code coverage targets, defect density, test pass rates, and acceptance thresholds.",
+    "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440144",
+    "name": "Bug Tracking Process",
+    "description": "Document the bug tracking process including severity levels, bug lifecycle, triage process, and resolution workflows.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440145",
+    "name": "Quality Gates",
+    "description": "Define quality gates and checkpoints that must be passed before proceeding to the next phase or release.",
+    "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440146",
+    "name": "Infrastructure Requirements",
+    "description": "Document infrastructure requirements including servers, cloud resources, networking, storage, and capacity planning.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440147",
+    "name": "Deployment Procedures",
+    "description": "Step-by-step deployment procedures including pre-deployment checks, deployment steps, verification, and post-deployment tasks.",
+    "default_order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440148",
+    "name": "Rollback Plan",
+    "description": "Document rollback procedures including triggers for rollback, rollback steps, data recovery, and communication plan.",
+    "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440149",
+    "name": "Network Architecture",
+    "description": "Document network architecture including VPCs, subnets, security groups, load balancers, and network topology diagrams.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440150",
+    "name": "Operational Procedures",
+    "description": "Document standard operational procedures for routine tasks including maintenance windows, backup procedures, and health checks.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440151",
+    "name": "Incident Response",
+    "description": "Document incident response procedures including severity classification, escalation paths, communication templates, and post-mortem process.",
+    "default_order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440152",
+    "name": "Monitoring and Alerts",
+    "description": "Document monitoring setup including metrics to track, alert thresholds, dashboards, and on-call procedures.",
+    "default_order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440153",
+    "name": "New Features",
+    "description": "List and describe new features added in the release with usage instructions and any configuration requirements.",
+    "default_order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440154",
+    "name": "Breaking Changes",
+    "description": "Document any breaking changes, deprecations, and migration guides for users upgrading from previous versions.",
+    "default_order": 3
   }
 ]

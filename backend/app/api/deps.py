@@ -12,7 +12,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 
 # AUTH DISABLED: Mock user ID for development
 MOCK_USER_ID = "00000000-0000-0000-0000-000000000001"
-MOCK_USER_EMAIL = "dev@docugen.local"
+MOCK_USER_EMAIL = "dev@doculens.local"
 MOCK_USER_NAME = "Developer"
 
 
@@ -75,3 +75,16 @@ def get_current_user(
 
     return user
     """
+
+
+def get_current_user_optional(
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+) -> User:
+    """
+    Dependency for optionally getting the current user.
+    AUTH DISABLED: Returns mock user (same as get_current_user).
+    When auth is enabled, this would return None if no valid token.
+    """
+    # AUTH DISABLED: Return mock user
+    return get_or_create_mock_user(db)

@@ -11,6 +11,7 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react'
+import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import { documentsApi } from '@/api/documents'
 import { generationApi } from '@/api/sections'
@@ -147,12 +148,14 @@ export default function GenerationProgressPage() {
 
   if (documentLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary-600" />
-          <p className="mt-2 text-gray-600">Loading document...</p>
+      <Layout>
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary-600" />
+            <p className="mt-2 text-gray-600">Loading document...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
@@ -161,8 +164,8 @@ export default function GenerationProgressPage() {
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="mx-auto max-w-3xl px-4 py-12">
+    <Layout>
+      <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex rounded-full bg-primary-100 p-4">
@@ -247,7 +250,7 @@ export default function GenerationProgressPage() {
           )}
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }
 

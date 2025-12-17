@@ -2,10 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api import auth, projects, documents, sections, templates, generation
+from app.api import auth, projects, documents, sections, templates, generation, sdlc_projects
 from app.database import engine, Base
 # Import all models to ensure they're registered with Base
-from app.models import user, project, document, section, document_type, generated_content
+from app.models import user, project, document, section, document_type, generated_content, sdlc_project, sdlc_stage
 
 
 @asynccontextmanager
@@ -16,9 +16,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.app_name,
-    description="AI-powered documentation generator with human-in-the-loop capabilities",
-    version="0.1.0",
+    title="DocuLens",
+    description="SDLC Documentation Assistant - AI-powered documentation generator with human-in-the-loop capabilities",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -33,7 +33,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
+app.include_router(sdlc_projects.router, prefix="/api/sdlc-projects", tags=["SDLC Projects"])
+app.include_router(projects.router, prefix="/api/projects", tags=["Repositories"])
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(sections.router, prefix="/api/sections", tags=["Sections"])
 app.include_router(templates.router, prefix="/api/templates", tags=["Templates"])
@@ -42,7 +43,7 @@ app.include_router(generation.router, prefix="/api/generation", tags=["Generatio
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to DocuGen API", "version": "0.1.0"}
+    return {"message": "Welcome to DocuLens API", "version": "0.2.0"}
 
 
 @app.get("/health")

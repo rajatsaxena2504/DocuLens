@@ -1,6 +1,8 @@
 import uuid
 import io
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
@@ -10,13 +12,27 @@ from app.services.document_generator import DocumentGenerator
 router = APIRouter()
 
 
+class GenerateRequest(BaseModel):
+    """Request body for document generation."""
+    repository_ids: Optional[list[uuid.UUID]] = None  # Optional: specific repos to include
+
+
 @router.post("/documents/{document_id}/generate")
 def generate_document(
     document_id: uuid.UUID,
+    request: Optional[GenerateRequest] = Body(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Generate content for all sections in a document."""
+    """Generate content for all sections in a document.
+
+    Args:
+        document_id: The document to generate content for
+        request: Optional request body with repository_ids to include
+            - If repository_ids provided: use only those repositories
+            - If omitted and document's project is in SDLC project: use all repos from SDLC project
+            - Otherwise: use only the document's primary project/repository
+    """
     document = db.query(Document).filter(
         Document.id == document_id,
         Document.user_id == current_user.id,
@@ -34,8 +50,13 @@ def generate_document(
             detail="Document has no sections to generate",
         )
 
+    # Extract repository IDs from request if provided
+    repository_ids = None
+    if request and request.repository_ids:
+        repository_ids = [str(rid) for rid in request.repository_ids]
+
     generator = DocumentGenerator(db)
-    results = generator.generate_document(str(document_id))
+    results = generator.generate_document(str(document_id), repository_ids=repository_ids)
 
     return {
         "document_id": str(document_id),
@@ -48,10 +69,17 @@ def generate_document(
 def regenerate_section(
     document_id: uuid.UUID,
     section_id: uuid.UUID,
+    request: Optional[GenerateRequest] = Body(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Regenerate content for a specific section."""
+    """Regenerate content for a specific section.
+
+    Args:
+        document_id: The document containing the section
+        section_id: The section to regenerate
+        request: Optional request body with repository_ids to include
+    """
     document = db.query(Document).filter(
         Document.id == document_id,
         Document.user_id == current_user.id,
@@ -63,8 +91,16 @@ def regenerate_section(
             detail="Document not found",
         )
 
+    repository_ids = None
+    if request and request.repository_ids:
+        repository_ids = [str(rid) for rid in request.repository_ids]
+
     generator = DocumentGenerator(db)
-    result = generator.regenerate_section(str(document_id), str(section_id))
+    result = generator.regenerate_section(
+        str(document_id),
+        str(section_id),
+        repository_ids=repository_ids,
+    )
 
     return result
 
@@ -245,3 +281,108 @@ def export_document(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported format: {format}. Use markdown, docx, or pdf.",
         )
+
+
+@router.get("/projects/{project_id}/export-bundle")
+def export_project_bundle(
+    project_id: uuid.UUID,
+    stage_id: uuid.UUID = None,
+    format: str = "markdown",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Export all documents for a project (or specific stage) as a bundle.
+
+    Args:
+        project_id: The SDLC project ID
+        stage_id: Optional - filter to only documents from this stage
+        format: Export format (markdown only for bundle)
+    """
+    from app.models import Project, SDLCProject
+
+    # Get the SDLC project
+    sdlc_project = db.query(SDLCProject).filter(
+        SDLCProject.id == project_id,
+        SDLCProject.user_id == current_user.id,
+    ).first()
+
+    if not sdlc_project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    # Get all repositories for this project
+    repo_ids = [r.id for r in sdlc_project.repositories]
+
+    # Query documents
+    query = db.query(Document).filter(
+        Document.project_id.in_(repo_ids),
+        Document.user_id == current_user.id,
+    )
+
+    if stage_id:
+        query = query.filter(Document.stage_id == stage_id)
+
+    documents = query.order_by(Document.stage_id, Document.updated_at.desc()).all()
+
+    if not documents:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No documents found for this project",
+        )
+
+    # Build the bundle content
+    bundle_content = f"# {sdlc_project.name} - Documentation Bundle\n\n"
+    bundle_content += f"Generated: {documents[0].updated_at.strftime('%Y-%m-%d %H:%M')}\n\n"
+    bundle_content += "---\n\n"
+
+    # Table of contents
+    bundle_content += "## Table of Contents\n\n"
+    current_stage = None
+    toc_items = []
+
+    for doc in documents:
+        stage_name = doc.stage.name if doc.stage else "General"
+        if stage_name != current_stage:
+            current_stage = stage_name
+            toc_items.append(f"\n### {stage_name}\n")
+        toc_items.append(f"- [{doc.title}](#{doc.title.lower().replace(' ', '-')})")
+
+    bundle_content += "\n".join(toc_items)
+    bundle_content += "\n\n---\n\n"
+
+    # Document content
+    current_stage = None
+    for doc in documents:
+        stage_name = doc.stage.name if doc.stage else "General"
+
+        if stage_name != current_stage:
+            current_stage = stage_name
+            bundle_content += f"\n\n# {stage_name} Stage Documentation\n\n"
+
+        bundle_content += f"## {doc.title}\n\n"
+
+        for section in doc.sections:
+            if not section.is_included:
+                continue
+
+            bundle_content += f"### {section.title}\n\n"
+
+            if section.generated_content:
+                bundle_content += section.generated_content[0].content
+            else:
+                bundle_content += "_No content generated yet._"
+
+            bundle_content += "\n\n"
+
+        bundle_content += "---\n\n"
+
+    # Return as markdown file
+    filename = f"{sdlc_project.name.replace(' ', '_')}_documentation_bundle.md"
+
+    return StreamingResponse(
+        io.BytesIO(bundle_content.encode('utf-8')),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

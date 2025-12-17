@@ -3,6 +3,7 @@
     "id": "550e8400-e29b-41d4-a716-446655440006",
     "name": "Requirements Document",
     "description": "Comprehensive requirements documentation including user stories, functional and non-functional requirements, use cases, and acceptance criteria.",
+    "stage": "Requirements",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
       "550e8400-e29b-41d4-a716-446655440136",
@@ -14,9 +15,23 @@
     ]
   },
   {
+    "id": "550e8400-e29b-41d4-a716-446655440050",
+    "name": "Product Requirements Document (PRD)",
+    "description": "Product-focused requirements document defining the what and why of the product, target users, success metrics, and feature prioritization.",
+    "stage": "Requirements",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440136",
+      "550e8400-e29b-41d4-a716-446655440131",
+      "550e8400-e29b-41d4-a716-446655440132",
+      "550e8400-e29b-41d4-a716-446655440135"
+    ]
+  },
+  {
     "id": "550e8400-e29b-41d4-a716-446655440007",
     "name": "Design Document",
     "description": "System design documentation including architecture, design principles, component design, data models, and integration points.",
+    "stage": "Design",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
       "550e8400-e29b-41d4-a716-446655440137",
@@ -31,6 +46,7 @@
     "id": "550e8400-e29b-41d4-a716-446655440001",
     "name": "Technical Specification Document",
     "description": "Comprehensive technical documentation for software projects including architecture, implementation details, and technical decisions.",
+    "stage": "Design",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
       "550e8400-e29b-41d4-a716-446655440102",
@@ -45,6 +61,7 @@
     "id": "550e8400-e29b-41d4-a716-446655440002",
     "name": "API Documentation",
     "description": "API reference documentation including endpoints, request/response formats, authentication, and usage examples.",
+    "stage": "Design",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
       "550e8400-e29b-41d4-a716-446655440108",
@@ -55,22 +72,25 @@
     ]
   },
   {
-    "id": "550e8400-e29b-41d4-a716-446655440003",
-    "name": "User Guide",
-    "description": "End-user documentation explaining how to use the software, including setup, features, and common tasks.",
+    "id": "550e8400-e29b-41d4-a716-446655440005",
+    "name": "Developer Guide",
+    "description": "Documentation for developers working on or with the codebase, including setup, architecture, and coding guidelines.",
+    "stage": "Development",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
-      "550e8400-e29b-41d4-a716-446655440113",
-      "550e8400-e29b-41d4-a716-446655440114",
-      "550e8400-e29b-41d4-a716-446655440115",
-      "550e8400-e29b-41d4-a716-446655440116",
-      "550e8400-e29b-41d4-a716-446655440117"
+      "550e8400-e29b-41d4-a716-446655440122",
+      "550e8400-e29b-41d4-a716-446655440103",
+      "550e8400-e29b-41d4-a716-446655440123",
+      "550e8400-e29b-41d4-a716-446655440124",
+      "550e8400-e29b-41d4-a716-446655440125",
+      "550e8400-e29b-41d4-a716-446655440126"
     ]
   },
   {
     "id": "550e8400-e29b-41d4-a716-446655440004",
     "name": "README",
     "description": "Standard README documentation for repositories including overview, installation, usage, and contribution guidelines.",
+    "stage": "Development",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
       "550e8400-e29b-41d4-a716-446655440118",
@@ -81,17 +101,104 @@
     ]
   },
   {
-    "id": "550e8400-e29b-41d4-a716-446655440005",
-    "name": "Developer Guide",
-    "description": "Documentation for developers working on or with the codebase, including setup, architecture, and coding guidelines.",
+    "id": "550e8400-e29b-41d4-a716-446655440051",
+    "name": "Code Documentation",
+    "description": "In-depth code documentation covering modules, classes, functions, and implementation patterns used in the codebase.",
+    "stage": "Development",
     "default_sections": [
       "550e8400-e29b-41d4-a716-446655440101",
-      "550e8400-e29b-41d4-a716-446655440122",
-      "550e8400-e29b-41d4-a716-446655440103",
       "550e8400-e29b-41d4-a716-446655440123",
-      "550e8400-e29b-41d4-a716-446655440124",
-      "550e8400-e29b-41d4-a716-446655440125",
-      "550e8400-e29b-41d4-a716-446655440126"
+      "550e8400-e29b-41d4-a716-446655440105",
+      "550e8400-e29b-41d4-a716-446655440127"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440052",
+    "name": "Test Plan",
+    "description": "Comprehensive test planning document including test strategy, test cases, testing environments, and quality metrics.",
+    "stage": "Testing",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440140",
+      "550e8400-e29b-41d4-a716-446655440141",
+      "550e8400-e29b-41d4-a716-446655440142",
+      "550e8400-e29b-41d4-a716-446655440143"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440053",
+    "name": "QA Documentation",
+    "description": "Quality assurance documentation including test procedures, bug tracking processes, and quality gates.",
+    "stage": "Testing",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440140",
+      "550e8400-e29b-41d4-a716-446655440144",
+      "550e8400-e29b-41d4-a716-446655440145"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440054",
+    "name": "Deployment Guide",
+    "description": "Step-by-step deployment documentation including infrastructure setup, deployment procedures, and rollback plans.",
+    "stage": "Deployment",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440146",
+      "550e8400-e29b-41d4-a716-446655440126",
+      "550e8400-e29b-41d4-a716-446655440147",
+      "550e8400-e29b-41d4-a716-446655440148"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440055",
+    "name": "Infrastructure Documentation",
+    "description": "Documentation of infrastructure components, cloud resources, networking, and system configurations.",
+    "stage": "Deployment",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440146",
+      "550e8400-e29b-41d4-a716-446655440149",
+      "550e8400-e29b-41d4-a716-446655440128"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440056",
+    "name": "Runbook",
+    "description": "Operational runbook with procedures for common tasks, incident response, monitoring alerts, and troubleshooting guides.",
+    "stage": "Maintenance",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440150",
+      "550e8400-e29b-41d4-a716-446655440151",
+      "550e8400-e29b-41d4-a716-446655440117",
+      "550e8400-e29b-41d4-a716-446655440152"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "name": "User Guide",
+    "description": "End-user documentation explaining how to use the software, including setup, features, and common tasks.",
+    "stage": "Maintenance",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440113",
+      "550e8400-e29b-41d4-a716-446655440114",
+      "550e8400-e29b-41d4-a716-446655440115",
+      "550e8400-e29b-41d4-a716-446655440116",
+      "550e8400-e29b-41d4-a716-446655440117"
+    ]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440057",
+    "name": "Release Notes",
+    "description": "Documentation of releases including new features, improvements, bug fixes, breaking changes, and upgrade instructions.",
+    "stage": "Maintenance",
+    "default_sections": [
+      "550e8400-e29b-41d4-a716-446655440101",
+      "550e8400-e29b-41d4-a716-446655440130",
+      "550e8400-e29b-41d4-a716-446655440153",
+      "550e8400-e29b-41d4-a716-446655440154"
     ]
   }
 ]

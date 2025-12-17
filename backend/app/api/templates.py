@@ -16,11 +16,31 @@ router = APIRouter()
 
 @router.get("", response_model=List[DocumentTypeResponse])
 def list_templates(
+    stage_id: uuid.UUID = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all document types/templates."""
+    """List all document types/templates, optionally filtered by stage."""
+    query = db.query(DocumentType).filter(
+        (DocumentType.is_system == True) | (DocumentType.user_id == current_user.id)
+    )
+
+    if stage_id:
+        query = query.filter(DocumentType.stage_id == stage_id)
+
+    templates = query.all()
+    return templates
+
+
+@router.get("/by-stage/{stage_id}", response_model=List[DocumentTypeResponse])
+def list_templates_by_stage(
+    stage_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List document types/templates for a specific SDLC stage."""
     templates = db.query(DocumentType).filter(
+        DocumentType.stage_id == stage_id,
         (DocumentType.is_system == True) | (DocumentType.user_id == current_user.id)
     ).all()
     return templates

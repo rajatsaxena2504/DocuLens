@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.models import User, Document, DocumentSection, Project, GeneratedContent
+from app.models import User, Document, DocumentSection, Project, GeneratedContent, SDLCProject
 from app.schemas import (
     DocumentCreate,
     DocumentUpdate,
@@ -62,22 +62,81 @@ def create_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create a new document."""
-    # Verify project exists and belongs to user
-    project = db.query(Project).filter(
-        Project.id == document_data.project_id,
-        Project.user_id == current_user.id,
-    ).first()
+    """Create a new document.
 
-    if not project:
+    Supports two flows:
+    1. SDLC flow: sdlc_project_id is provided (project_id interpreted as sdlc_project_id for backwards compat)
+    2. Legacy flow: project_id refers to a repository
+    """
+    project_id = None
+    sdlc_project_id = None
+    sdlc_project = None
+
+    # Handle SDLC project flow
+    if document_data.sdlc_project_id:
+        sdlc_project = db.query(SDLCProject).filter(
+            SDLCProject.id == document_data.sdlc_project_id,
+            SDLCProject.user_id == current_user.id,
+        ).first()
+        if not sdlc_project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="SDLC Project not found",
+            )
+        sdlc_project_id = document_data.sdlc_project_id
+    elif document_data.project_id:
+        # First try as SDLC project ID (for backwards compatibility with frontend)
+        sdlc_project = db.query(SDLCProject).filter(
+            SDLCProject.id == document_data.project_id,
+            SDLCProject.user_id == current_user.id,
+        ).first()
+        if sdlc_project:
+            sdlc_project_id = document_data.project_id
+        else:
+            # Fall back to repository (Project) lookup
+            project = db.query(Project).filter(
+                Project.id == document_data.project_id,
+                Project.user_id == current_user.id,
+            ).first()
+            if not project:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Project not found",
+                )
+            project_id = document_data.project_id
+            # If repository has an SDLC project, link to that too
+            if project.sdlc_project_id:
+                sdlc_project_id = project.sdlc_project_id
+    else:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either project_id or sdlc_project_id is required",
+        )
+
+    # If we have an SDLC project but no repository, try to find one
+    # (needed for DB constraint - project_id is NOT NULL in legacy schema)
+    if sdlc_project_id and not project_id:
+        # Re-fetch sdlc_project if needed
+        if not sdlc_project:
+            sdlc_project = db.query(SDLCProject).filter(
+                SDLCProject.id == sdlc_project_id,
+            ).first()
+        # Use the first repository from the SDLC project
+        if sdlc_project and sdlc_project.repositories:
+            project_id = sdlc_project.repositories[0].id
+
+    # If still no project_id, we need at least one repository
+    if not project_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please add a repository to this project before creating documents",
         )
 
     document = Document(
-        project_id=document_data.project_id,
+        project_id=project_id,
+        sdlc_project_id=sdlc_project_id,
         document_type_id=document_data.document_type_id,
+        stage_id=document_data.stage_id,
         user_id=current_user.id,
         title=document_data.title,
         status="draft",
@@ -114,7 +173,9 @@ def get_document(
     return {
         'id': document.id,
         'project_id': document.project_id,
+        'sdlc_project_id': document.sdlc_project_id,
         'document_type_id': document.document_type_id,
+        'stage_id': document.stage_id,
         'title': document.title,
         'status': document.status,
         'created_at': document.created_at,

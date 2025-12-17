@@ -13,9 +13,15 @@ class Document(Base):
     project_id = Column(
         GUID(),
         ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,  # Now optional - can use sdlc_project_id instead
+    )
+    sdlc_project_id = Column(
+        GUID(),
+        ForeignKey("sdlc_projects.id", ondelete="CASCADE"),
+        nullable=True,  # SDLC project this document belongs to
     )
     document_type_id = Column(GUID(), ForeignKey("document_types.id"))
+    stage_id = Column(GUID(), ForeignKey("sdlc_stages.id"), nullable=True)
     user_id = Column(
         GUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -28,7 +34,9 @@ class Document(Base):
 
     # Relationships
     project = relationship("Project", back_populates="documents")
+    sdlc_project = relationship("SDLCProject", back_populates="documents")
     document_type = relationship("DocumentType", back_populates="documents")
+    stage = relationship("SDLCStage", back_populates="documents")
     user = relationship("User", back_populates="documents")
     sections = relationship(
         "DocumentSection",

@@ -4,7 +4,7 @@ import os
 import uuid
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
-from app.models import DocumentType, Section, DocumentTypeSection
+from app.models import DocumentType, Section, DocumentTypeSection, SDLCStage
 
 
 def load_json_file(filename: str) -> list:
@@ -42,14 +42,29 @@ def seed_sections(db: Session) -> dict:
     return id_map
 
 
+def get_stage_map(db: Session) -> dict:
+    """Get a mapping of stage names to stage IDs."""
+    stages = db.query(SDLCStage).all()
+    return {stage.name: stage.id for stage in stages}
+
+
 def seed_document_types(db: Session, section_id_map: dict) -> None:
     """Seed document types with their default sections."""
     doc_types_data = load_json_file('document_types.json')
+    stage_map = get_stage_map(db)
 
     for doc_type_data in doc_types_data:
         # Check if document type already exists
         existing = db.query(DocumentType).filter(DocumentType.id == doc_type_data['id']).first()
+
+        # Get stage_id from stage name
+        stage_name = doc_type_data.get('stage')
+        stage_id = stage_map.get(stage_name) if stage_name else None
+
         if existing:
+            # Update stage_id if it changed
+            if stage_id and existing.stage_id != stage_id:
+                existing.stage_id = stage_id
             continue
 
         doc_type = DocumentType(
@@ -57,6 +72,7 @@ def seed_document_types(db: Session, section_id_map: dict) -> None:
             name=doc_type_data['name'],
             description=doc_type_data['description'],
             is_system=True,
+            stage_id=stage_id,
         )
         db.add(doc_type)
         db.flush()

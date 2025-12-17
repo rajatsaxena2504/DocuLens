@@ -15,11 +15,11 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import RichTextEditor from '@/components/editor/RichTextEditor'
 import ExportOptions from '@/components/editor/ExportOptions'
-import DocumentSidebar from '@/components/layout/DocumentSidebar'
 import AddSectionModal from '@/components/sections/AddSectionModal'
 import { PageLoading } from '@/components/common/Loading'
 import {
@@ -246,42 +246,41 @@ export default function DocumentEditorPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Layout>
         <PageLoading />
-      </div>
+      </Layout>
     )
   }
 
   if (!document) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Card variant="elevated" className="max-w-md mx-auto text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
-            <FileText className="h-8 w-8 text-slate-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Document not found</h2>
-          <p className="text-slate-500 mb-6">The document you're looking for doesn't exist or was deleted.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </Card>
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center py-16">
+          <Card variant="elevated" className="max-w-md mx-auto text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
+              <FileText className="h-8 w-8 text-slate-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Document not found</h2>
+            <p className="text-slate-500 mb-6">The document you're looking for doesn't exist or was deleted.</p>
+            <Button onClick={() => navigate('/')}>Go Home</Button>
+          </Card>
+        </div>
+      </Layout>
     )
   }
 
   const includedSections = document.sections.filter((s) => s.is_included)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      {/* Document Sidebar */}
-      <DocumentSidebar />
-
+    <Layout>
       {/* Main content area */}
-      <div className="pl-64">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                to={`/projects/${document.project_id}`}
+                to={`/projects/${document.sdlc_project_id || document.project_id}`}
                 className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -582,6 +581,6 @@ export default function DocumentEditorPage() {
         onAdd={handleAddSection}
         existingSectionIds={document.sections.map((s) => s.section_id || '').filter(Boolean)}
       />
-    </div>
+    </Layout>
   )
 }

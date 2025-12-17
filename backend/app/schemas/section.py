@@ -33,6 +33,7 @@ class DocumentTypeResponse(BaseModel):
     name: str
     description: Optional[str]
     is_system: bool
+    stage_id: Optional[UUID] = None
     created_at: datetime
 
     class Config:

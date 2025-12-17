@@ -1,16 +1,21 @@
 import { FileText, Check } from 'lucide-react'
 import { cn } from '@/utils/helpers'
-import { useTemplates } from '@/hooks/useSections'
+import { useTemplates, useTemplatesByStage } from '@/hooks/useSections'
 import Loading from '@/components/common/Loading'
 import type { DocumentType } from '@/types'
 
 interface TemplateSelectorProps {
   selectedId: string | null
   onSelect: (template: DocumentType) => void
+  stageId?: string // Optional stage filter
 }
 
-export default function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps) {
-  const { data: templates, isLoading } = useTemplates()
+export default function TemplateSelector({ selectedId, onSelect, stageId }: TemplateSelectorProps) {
+  // Use stage-filtered templates if stageId provided, otherwise all templates
+  const allTemplates = useTemplates()
+  const stageTemplates = useTemplatesByStage(stageId)
+
+  const { data: templates, isLoading } = stageId ? stageTemplates : allTemplates
 
   if (isLoading) return <Loading className="py-8" />
 
