@@ -61,23 +61,23 @@ export default function GitHubInput({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div
         className={cn(
-          'relative flex items-center rounded-lg border-2 bg-white transition-all',
+          'relative flex items-center rounded-xl border-2 bg-white transition-all duration-200',
           isFocused
-            ? 'border-primary-500 ring-2 ring-primary-100'
+            ? 'border-primary-500 ring-4 ring-primary-500/10'
             : error
-              ? 'border-red-300'
+              ? 'border-danger-300 bg-danger-50/50'
               : isValid && value
-                ? 'border-green-300'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-success-400 bg-success-50/30'
+                : 'border-slate-200 hover:border-slate-300'
         )}
       >
         <div className="flex items-center pl-4">
           <Github className={cn(
-            'h-5 w-5',
-            isFocused ? 'text-primary-500' : 'text-gray-400'
+            'h-5 w-5 transition-colors',
+            isFocused ? 'text-primary-500' : isValid && value ? 'text-success-500' : 'text-slate-400'
           )} />
         </div>
         <input
@@ -87,14 +87,18 @@ export default function GitHubInput({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder="https://github.com/username/repository"
-          className="flex-1 border-0 bg-transparent px-3 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+          className="flex-1 border-0 bg-transparent px-3 py-3.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-0"
         />
         {value && (
           <div className="flex items-center pr-4">
             {isValid ? (
-              <Check className="h-5 w-5 text-green-500" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success-100">
+                <Check className="h-4 w-4 text-success-600" />
+              </div>
             ) : (
-              <AlertCircle className="h-5 w-5 text-red-400" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-danger-100">
+                <AlertCircle className="h-4 w-4 text-danger-500" />
+              </div>
             )}
           </div>
         )}
@@ -102,34 +106,38 @@ export default function GitHubInput({
 
       {/* Error message */}
       {error && (
-        <p className="flex items-center gap-1 text-sm text-red-600">
-          <AlertCircle className="h-4 w-4" />
-          {error}
-        </p>
+        <div className="flex items-center gap-2 rounded-lg bg-danger-50 px-3 py-2 text-sm">
+          <AlertCircle className="h-4 w-4 text-danger-500" />
+          <span className="text-danger-700">{error}</span>
+        </div>
       )}
 
       {/* Valid repo info */}
       {isValid && repoInfo && (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm">
-          <Check className="h-4 w-4 text-green-600" />
-          <span className="text-green-800">
-            Repository: <strong>{repoInfo.owner}/{repoInfo.repo}</strong>
-          </span>
+        <div className="flex items-center gap-3 rounded-xl bg-success-50 px-4 py-3 text-sm border border-success-200">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success-100">
+            <Check className="h-4 w-4 text-success-600" />
+          </div>
+          <div className="flex-1">
+            <span className="text-success-800">
+              Repository: <strong>{repoInfo.owner}/{repoInfo.repo}</strong>
+            </span>
+          </div>
           <a
             href={value}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto flex items-center gap-1 text-green-700 hover:text-green-900"
+            className="flex items-center gap-1.5 rounded-lg bg-success-100 px-2.5 py-1.5 text-xs font-medium text-success-700 hover:bg-success-200 transition-colors"
           >
-            <ExternalLink className="h-3 w-3" />
-            <span className="text-xs">View</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+            View
           </a>
         </div>
       )}
 
       {/* Helper text */}
       {!value && !error && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-slate-500">
           Supports public and private repositories. For private repos, ensure you have access configured.
         </p>
       )}

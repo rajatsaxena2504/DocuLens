@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosInstance } from 'axios'
 // AUTH DISABLED TEMPORARILY - Uncomment to re-enable authentication
 // import { storage } from '@/utils/storage'
 

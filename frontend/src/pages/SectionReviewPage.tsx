@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   DndContext,
   closestCenter,
@@ -18,18 +18,22 @@ import {
 import {
   Plus,
   Sparkles,
-  Loader2,
   FileCode,
   FolderTree,
   Code,
   CheckCircle,
   ArrowLeft,
   RotateCcw,
+  Lightbulb,
+  GripVertical,
+  Layers,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Button from '@/components/common/Button'
+import { Card } from '@/components/common/Card'
 import SectionPlanItem from '@/components/sections/SectionPlanItem'
 import AddSectionModal from '@/components/sections/AddSectionModal'
-import { PageLoading } from '@/components/common/Loading'
+import Loading, { PageLoading } from '@/components/common/Loading'
 import {
   useDocument,
   useSectionSuggestions,
@@ -40,9 +44,26 @@ import {
   useUpdateDocument,
 } from '@/hooks/useDocuments'
 import { useProjectAnalysis } from '@/hooks/useProjects'
-import type { DocumentSection } from '@/types'
+import type { DocumentSection, UpdateSectionRequest } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/utils/helpers'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 },
+  },
+}
 
 export default function SectionReviewPage() {
   const { documentId } = useParams()
@@ -73,17 +94,14 @@ export default function SectionReviewPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // Initialize sections from document
   useEffect(() => {
     if (document?.sections && document.sections.length > 0) {
       setSections(document.sections)
     }
   }, [document])
 
-  // Add suggestions as sections when loaded
   useEffect(() => {
     if (suggestions && document && document.sections.length === 0) {
-      // Auto-add suggested sections
       const addSuggestions = async () => {
         for (let index = 0; index < suggestions.length; index++) {
           const suggestion = suggestions[index]
@@ -97,7 +115,6 @@ export default function SectionReviewPage() {
             })
           }
         }
-        // Refetch document to get updated sections
         refetchDocument()
       }
       addSuggestions()
@@ -114,7 +131,6 @@ export default function SectionReviewPage() {
     const newSections = arrayMove(sections, oldIndex, newIndex)
     setSections(newSections)
 
-    // Update server
     reorderSections.mutate({
       documentId,
       data: {
@@ -132,7 +148,6 @@ export default function SectionReviewPage() {
     const newSections = arrayMove(sections, index, newIndex)
     setSections(newSections)
 
-    // Update server
     reorderSections.mutate({
       documentId,
       data: {
@@ -141,7 +156,7 @@ export default function SectionReviewPage() {
     })
   }
 
-  const handleUpdateSection = (sectionId: string, updates: Partial<DocumentSection>) => {
+  const handleUpdateSection = (sectionId: string, updates: UpdateSectionRequest) => {
     if (!documentId) return
 
     updateSection.mutate({
@@ -150,7 +165,6 @@ export default function SectionReviewPage() {
       data: updates,
     })
 
-    // Optimistic update
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, ...updates } : s))
     )
@@ -195,14 +209,13 @@ export default function SectionReviewPage() {
     setIsSubmitting(true)
 
     try {
-      // Update document status
       await updateDocument.mutateAsync({
         id: documentId,
         data: { status: 'sections_approved' },
       })
 
       toast.success('Sections approved! Starting generation...')
-      navigate(`/documents/${documentId}/generating`)
+      navigate(`/documents/${documentId}/edit`)
     } catch (error) {
       toast.error('Failed to approve sections')
       setIsSubmitting(false)
@@ -213,20 +226,25 @@ export default function SectionReviewPage() {
     refetchSuggestions()
   }
 
-  // Loading states
   if (docLoading) {
-    return <PageLoading />
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <PageLoading />
+      </div>
+    )
   }
 
   if (!document) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-500">Document not found</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate('/')}>
-            Go Home
-          </Button>
-        </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Card variant="elevated" className="max-w-md mx-auto text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
+            <FileCode className="h-8 w-8 text-slate-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Document not found</h2>
+          <p className="text-slate-500 mb-6">The document you're looking for doesn't exist or was deleted.</p>
+          <Button onClick={() => navigate('/')}>Go Home</Button>
+        </Card>
       </div>
     )
   }
@@ -236,168 +254,215 @@ export default function SectionReviewPage() {
   const isAnalyzing = suggestionsLoading || analysisLoading
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="mx-auto max-w-4xl px-4 py-8"
+      >
         {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-4 flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+        <motion.div variants={itemVariants} className="mb-8">
+          <Link
+            to={`/projects/${document.project_id}`}
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">{document.title}</h1>
-          <p className="mt-1 text-gray-600">
-            Review and customize sections before generating documentation
-          </p>
-        </div>
+            Back to Project
+          </Link>
+
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-lg shadow-primary-500/25">
+                <Layers className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">{document.title}</h1>
+                <p className="text-slate-500">Review and customize sections before generating</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Analysis Stats */}
         {projectAnalysis?.analysis_data && (
-          <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <motion.div variants={itemVariants} className="mb-6 grid gap-4 sm:grid-cols-3">
             <StatCard
               icon={<FolderTree className="h-5 w-5" />}
               label="Files Analyzed"
               value={projectAnalysis.analysis_data.structure?.total_files || 0}
+              color="primary"
             />
             <StatCard
               icon={<Code className="h-5 w-5" />}
               label="Primary Language"
               value={projectAnalysis.analysis_data.primary_language || 'Unknown'}
+              color="accent"
             />
             <StatCard
               icon={<FileCode className="h-5 w-5" />}
               label="Lines of Code"
               value={projectAnalysis.analysis_data.structure?.total_lines?.toLocaleString() || 0}
+              color="success"
             />
-          </div>
+          </motion.div>
         )}
 
-        {/* Section List */}
-        <div className="rounded-xl bg-white p-6 shadow-lg">
-          {isAnalyzing ? (
-            <div className="py-12 text-center">
-              <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary-600" />
-              <p className="mt-4 font-medium text-gray-900">Analyzing your codebase...</p>
-              <p className="mt-1 text-sm text-gray-500">
-                AI is identifying the most relevant sections for your documentation
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Toolbar */}
-              <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <span className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium',
-                    includedCount > 0
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600'
-                  )}>
-                    <CheckCircle className="h-4 w-4" />
-                    {includedCount} of {totalCount} selected
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshSuggestions}
-                    disabled={suggestionsLoading}
-                  >
-                    <RotateCcw className={cn(
-                      'mr-1 h-4 w-4',
-                      suggestionsLoading && 'animate-spin'
-                    )} />
-                    Refresh
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddModal(true)}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Section
-                  </Button>
-                </div>
+        {/* Section List Card */}
+        <motion.div variants={itemVariants}>
+          <Card variant="elevated" padding="none" className="overflow-hidden">
+            {isAnalyzing ? (
+              <div className="py-16 text-center">
+                <Loading size="lg" />
+                <p className="mt-6 font-semibold text-slate-900">Analyzing your codebase...</p>
+                <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+                  AI is identifying the most relevant sections for your documentation based on your project structure
+                </p>
               </div>
-
-              {/* Section Plan List */}
-              {sections.length === 0 ? (
-                <div className="py-12 text-center">
-                  <FileCode className="mx-auto h-12 w-12 text-gray-300" />
-                  <p className="mt-4 text-gray-500">No sections yet</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setShowAddModal(true)}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Your First Section
-                  </Button>
+            ) : (
+              <>
+                {/* Toolbar */}
+                <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium',
+                      includedCount > 0
+                        ? 'bg-success-100 text-success-700'
+                        : 'bg-slate-100 text-slate-600'
+                    )}>
+                      <CheckCircle className="h-4 w-4" />
+                      {includedCount} of {totalCount} selected
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshSuggestions}
+                      disabled={suggestionsLoading}
+                      leftIcon={<RotateCcw className={cn(
+                        'h-4 w-4',
+                        suggestionsLoading && 'animate-spin'
+                      )} />}
+                    >
+                      Refresh
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddModal(true)}
+                      leftIcon={<Plus className="h-4 w-4" />}
+                    >
+                      Add Section
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={sections.map((s) => s.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="space-y-2">
-                      {sections.map((section, index) => (
-                        <SectionPlanItem
-                          key={section.id}
-                          section={section}
-                          index={index}
-                          totalCount={sections.length}
-                          onUpdate={(updates) => handleUpdateSection(section.id, updates)}
-                          onRemove={() => handleRemoveSection(section.id)}
-                          onMoveUp={() => handleMoveSection(index, 'up')}
-                          onMoveDown={() => handleMoveSection(index, 'down')}
-                        />
-                      ))}
+
+                {/* Section Plan List */}
+                <div className="p-6">
+                  {sections.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+                        <FileCode className="h-8 w-8 text-slate-400" />
+                      </div>
+                      <p className="font-semibold text-slate-900">No sections yet</p>
+                      <p className="mt-1 text-sm text-slate-500">Add your first section to get started</p>
+                      <Button
+                        variant="outline"
+                        className="mt-6"
+                        onClick={() => setShowAddModal(true)}
+                        leftIcon={<Plus className="h-4 w-4" />}
+                      >
+                        Add Your First Section
+                      </Button>
                     </div>
-                  </SortableContext>
-                </DndContext>
-              )}
-
-              {/* Approve & Generate Button */}
-              {sections.length > 0 && (
-                <div className="mt-6 border-t border-gray-100 pt-6">
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleApproveAndGenerate}
-                    isLoading={isSubmitting}
-                    disabled={includedCount === 0 || isSubmitting}
-                  >
-                    <Sparkles className="mr-2 h-5 w-5" />
-                    Approve & Generate Documentation
-                  </Button>
-                  <p className="mt-2 text-center text-xs text-gray-500">
-                    AI will generate content for {includedCount} selected section{includedCount !== 1 ? 's' : ''}
-                  </p>
+                  ) : (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={sections.map((s) => s.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-3">
+                          <AnimatePresence>
+                            {sections.map((section, index) => (
+                              <SectionPlanItem
+                                key={section.id}
+                                section={section}
+                                index={index}
+                                totalCount={sections.length}
+                                onUpdate={(updates) => handleUpdateSection(section.id, updates)}
+                                onRemove={() => handleRemoveSection(section.id)}
+                                onMoveUp={() => handleMoveSection(index, 'up')}
+                                onMoveDown={() => handleMoveSection(index, 'down')}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  )}
                 </div>
-              )}
-            </>
-          )}
-        </div>
+
+                {/* Approve & Generate Button */}
+                {sections.length > 0 && (
+                  <div className="border-t border-slate-100 px-6 py-6 bg-gradient-to-r from-slate-50 to-white">
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      onClick={handleApproveAndGenerate}
+                      isLoading={isSubmitting}
+                      disabled={includedCount === 0 || isSubmitting}
+                      leftIcon={<Sparkles className="h-5 w-5" />}
+                    >
+                      View & Edit Documentation
+                    </Button>
+                    <p className="mt-3 text-center text-xs text-slate-500">
+                      AI will generate content for {includedCount} selected section{includedCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        </motion.div>
 
         {/* Tips */}
-        <div className="mt-6 rounded-lg bg-blue-50 p-4">
-          <h3 className="font-medium text-blue-900">Tips for better documentation</h3>
-          <ul className="mt-2 space-y-1 text-sm text-blue-800">
-            <li>• Click on a section title to edit it inline</li>
-            <li>• Expand sections to edit their descriptions</li>
-            <li>• Drag sections to reorder them</li>
-            <li>• Uncheck sections you don't need</li>
-          </ul>
-        </div>
-      </div>
+        <motion.div variants={itemVariants} className="mt-6">
+          <Card variant="ghost" className="bg-gradient-to-r from-primary-50/50 to-accent-50/50 border border-primary-100">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-md shadow-primary-500/20">
+                <Lightbulb className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">Tips for better documentation</h3>
+                <ul className="space-y-1.5 text-sm text-slate-600">
+                  <li className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+                    Click on a section title to edit it inline
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+                    Expand sections to edit their descriptions
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+                    <GripVertical className="h-3 w-3 text-slate-400 inline" />
+                    Drag sections or use arrows to reorder
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+                    Uncheck sections you don't need in the final doc
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Add Section Modal */}
       <AddSectionModal
@@ -414,18 +479,53 @@ interface StatCardProps {
   icon: React.ReactNode
   label: string
   value: string | number
+  color: 'primary' | 'accent' | 'success'
 }
 
-function StatCard({ icon, label, value }: StatCardProps) {
+function StatCard({ icon, label, value, color }: StatCardProps) {
+  const colorClasses = {
+    primary: {
+      bg: 'bg-primary-50',
+      text: 'text-primary-600',
+      gradient: 'from-primary-500 to-primary-600',
+    },
+    accent: {
+      bg: 'bg-accent-50',
+      text: 'text-accent-600',
+      gradient: 'from-accent-500 to-accent-600',
+    },
+    success: {
+      bg: 'bg-success-50',
+      text: 'text-success-600',
+      gradient: 'from-success-500 to-success-600',
+    },
+  }
+
+  const colors = colorClasses[color]
+
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm">
-      <div className="rounded-lg bg-primary-50 p-2 text-primary-600">
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="font-semibold text-gray-900">{value}</p>
-      </div>
-    </div>
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Card variant="elevated" className="relative overflow-hidden">
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            'flex h-12 w-12 items-center justify-center rounded-xl',
+            colors.bg
+          )}>
+            <div className={colors.text}>{icon}</div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
+            <p className="text-xl font-bold text-slate-900">{value}</p>
+          </div>
+        </div>
+        <div className={cn(
+          'absolute -right-6 -top-6 h-16 w-16 rounded-full opacity-10',
+          `bg-gradient-to-br ${colors.gradient}`
+        )} />
+      </Card>
+    </motion.div>
   )
 }

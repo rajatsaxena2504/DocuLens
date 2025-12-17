@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 // AUTH DISABLED TEMPORARILY - Uncomment to re-enable authentication
 // import { storage } from '@/utils/storage'
@@ -26,8 +26,8 @@ const MOCK_USER: User = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   // AUTH DISABLED: Using mock user instead of real authentication
-  const [user, setUser] = useState<User | null>(MOCK_USER)
-  const [isLoading, setIsLoading] = useState(false) // Set to false since no auth check needed
+  const [user] = useState<User | null>(MOCK_USER)
+  const [isLoading] = useState(false) // Set to false since no auth check needed
   const navigate = useNavigate()
 
   // AUTH DISABLED: Original auth initialization commented out

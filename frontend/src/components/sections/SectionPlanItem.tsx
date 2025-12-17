@@ -6,7 +6,6 @@ import {
   Pencil,
   Trash2,
   ChevronDown,
-  ChevronRight,
   Square,
   CheckSquare,
   ArrowUp,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/helpers'
 import type { DocumentSection } from '@/types'
 
@@ -36,7 +36,7 @@ export default function SectionPlanItem({
   onMoveUp,
   onMoveDown,
 }: SectionPlanItemProps) {
-  const [isExpanded, setIsExpanded] = useState(true)  // Auto-expand to show description
+  const [isExpanded, setIsExpanded] = useState(true)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [isEditingDescription, setIsEditingDescription] = useState(false)
   const [editTitle, setEditTitle] = useState(section.title)
@@ -59,7 +59,6 @@ export default function SectionPlanItem({
     transition,
   }
 
-  // Focus input when editing starts
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
       titleInputRef.current.focus()
@@ -111,24 +110,28 @@ export default function SectionPlanItem({
   }
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        'group rounded-lg border-2 bg-white transition-all',
-        isDragging && 'shadow-xl ring-2 ring-primary-400 opacity-90',
+        'group rounded-2xl border-2 bg-white transition-all duration-200',
+        isDragging && 'shadow-2xl ring-2 ring-primary-400 scale-[1.02] z-50',
         section.is_included
-          ? 'border-gray-200 hover:border-gray-300'
-          : 'border-dashed border-gray-200 bg-gray-50 opacity-60'
+          ? 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+          : 'border-dashed border-slate-200 bg-slate-50/50 opacity-60'
       )}
     >
       {/* Main row */}
-      <div className="flex items-center gap-2 p-3">
+      <div className="flex items-center gap-3 p-4">
         {/* Drag handle */}
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing"
+          className="cursor-grab rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing transition-colors"
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -137,10 +140,10 @@ export default function SectionPlanItem({
         <button
           onClick={handleToggleInclude}
           className={cn(
-            'rounded p-1 transition-colors',
+            'rounded-lg p-1.5 transition-all duration-200',
             section.is_included
-              ? 'text-primary-600 hover:text-primary-700'
-              : 'text-gray-400 hover:text-gray-600'
+              ? 'text-primary-600 hover:text-primary-700 hover:bg-primary-50'
+              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
           )}
         >
           {section.is_included ? (
@@ -152,10 +155,10 @@ export default function SectionPlanItem({
 
         {/* Index badge */}
         <span className={cn(
-          'flex h-6 w-6 items-center justify-center rounded text-xs font-medium',
+          'flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold transition-colors',
           section.is_included
-            ? 'bg-primary-100 text-primary-700'
-            : 'bg-gray-100 text-gray-500'
+            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-sm'
+            : 'bg-slate-100 text-slate-500'
         )}>
           {index + 1}
         </span>
@@ -163,7 +166,7 @@ export default function SectionPlanItem({
         {/* Title - inline editable */}
         <div className="flex-1 min-w-0">
           {isEditingTitle ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <input
                 ref={titleInputRef}
                 type="text"
@@ -171,35 +174,35 @@ export default function SectionPlanItem({
                 onChange={(e) => setEditTitle(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, handleSaveTitle, handleCancelTitle)}
                 onBlur={handleSaveTitle}
-                className="flex-1 rounded border border-primary-300 px-2 py-1 text-sm font-medium focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className="flex-1 rounded-xl border-2 border-primary-300 px-3 py-1.5 text-sm font-medium focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
               />
               <button
                 onClick={handleSaveTitle}
-                className="rounded p-1 text-green-600 hover:bg-green-50"
+                className="rounded-lg p-1.5 text-success-600 hover:bg-success-50 transition-colors"
               >
                 <Check className="h-4 w-4" />
               </button>
               <button
                 onClick={handleCancelTitle}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <span
                 onClick={() => setIsEditingTitle(true)}
                 className={cn(
-                  'cursor-text truncate font-medium',
-                  section.is_included ? 'text-gray-900' : 'text-gray-500'
+                  'cursor-text truncate font-semibold transition-colors',
+                  section.is_included ? 'text-slate-900' : 'text-slate-500'
                 )}
               >
                 {section.title}
               </span>
               <button
                 onClick={() => setIsEditingTitle(true)}
-                className="opacity-0 group-hover:opacity-100 rounded p-1 text-gray-400 hover:text-gray-600"
+                className="opacity-0 group-hover:opacity-100 rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
               >
                 <Pencil className="h-3 w-3" />
               </button>
@@ -217,10 +220,10 @@ export default function SectionPlanItem({
             }}
             disabled={index === 0}
             className={cn(
-              'rounded p-1 transition-colors',
+              'rounded-lg p-1.5 transition-all duration-200',
               index === 0
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                ? 'text-slate-200 cursor-not-allowed'
+                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
             )}
             title="Move up"
           >
@@ -235,34 +238,35 @@ export default function SectionPlanItem({
             }}
             disabled={index === totalCount - 1}
             className={cn(
-              'rounded p-1 transition-colors',
+              'rounded-lg p-1.5 transition-all duration-200',
               index === totalCount - 1
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                ? 'text-slate-200 cursor-not-allowed'
+                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
             )}
             title="Move down"
           >
             <ArrowDown className="h-4 w-4" />
           </button>
 
-          <div className="w-px h-4 bg-gray-200 mx-1" />
+          <div className="w-px h-5 bg-slate-200 mx-1" />
 
           {/* Expand/collapse */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
-            {isExpanded ? (
+            <motion.div
+              animate={{ rotate: isExpanded ? 0 : -90 }}
+              transition={{ duration: 0.2 }}
+            >
               <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+            </motion.div>
           </button>
 
           {/* Delete */}
           <button
             onClick={onRemove}
-            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 opacity-0 group-hover:opacity-100"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -270,58 +274,70 @@ export default function SectionPlanItem({
       </div>
 
       {/* Expanded description */}
-      {isExpanded && (
-        <div className="border-t border-gray-100 px-4 py-3 pl-14">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-medium text-gray-500 uppercase">Description</div>
-            {!isEditingDescription && (
-              <button
-                onClick={() => setIsEditingDescription(true)}
-                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-primary-600 hover:bg-primary-50"
-              >
-                <Pencil className="h-3 w-3" />
-                Edit
-              </button>
-            )}
-          </div>
-          {isEditingDescription ? (
-            <div className="space-y-2">
-              <textarea
-                ref={descriptionInputRef}
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, handleSaveDescription, handleCancelDescription)}
-                rows={4}
-                placeholder="Describe what this section should cover..."
-                className="w-full rounded border border-primary-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={handleCancelDescription}
-                  className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveDescription}
-                  className="rounded bg-primary-600 px-3 py-1.5 text-sm text-white hover:bg-primary-700"
-                >
-                  Save Description
-                </button>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-slate-100 px-4 py-4 pl-16">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Description
+                </div>
+                {!isEditingDescription && (
+                  <button
+                    onClick={() => setIsEditingDescription(true)}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+                )}
               </div>
+              {isEditingDescription ? (
+                <div className="space-y-3">
+                  <textarea
+                    ref={descriptionInputRef}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, handleSaveDescription, handleCancelDescription)}
+                    rows={4}
+                    placeholder="Describe what this section should cover..."
+                    className="w-full rounded-xl border-2 border-primary-300 px-4 py-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all resize-none"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleCancelDescription}
+                      className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveDescription}
+                      className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-4 py-2 text-sm font-medium text-white hover:from-primary-700 hover:to-primary-600 shadow-sm transition-all"
+                    >
+                      Save Description
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => setIsEditingDescription(true)}
+                  className="cursor-text rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 hover:border-primary-300 hover:bg-primary-50/30 transition-all"
+                >
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
+                    {section.description || 'Click to add a description...'}
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div
-              onClick={() => setIsEditingDescription(true)}
-              className="cursor-text rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3 hover:border-primary-300 hover:bg-primary-50/50 transition-colors"
-            >
-              <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                {section.description || 'Click to add a description...'}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

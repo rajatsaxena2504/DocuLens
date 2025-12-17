@@ -77,35 +77,37 @@ export default function TemplateUpload({
 
   const getFileIcon = (fileType: string) => {
     if (fileType === 'application/pdf') {
-      return <File className="h-8 w-8 text-red-500" />
+      return <File className="h-8 w-8 text-danger-500" />
     }
-    return <FileText className="h-8 w-8 text-blue-500" />
+    return <FileText className="h-8 w-8 text-primary-500" />
   }
 
   if (file) {
     return (
-      <div className="rounded-lg border-2 border-green-200 bg-green-50 p-4">
+      <div className="rounded-xl border-2 border-success-200 bg-success-50/50 p-5">
         <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 rounded-lg bg-white p-2 shadow-sm">
+          <div className="flex-shrink-0 rounded-xl bg-white p-3 shadow-sm border border-success-100">
             {getFileIcon(file.type)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="font-medium text-green-800">Template uploaded</span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-success-500">
+                <CheckCircle className="h-3 w-3 text-white" />
+              </div>
+              <span className="font-semibold text-success-800">Template uploaded</span>
             </div>
-            <p className="mt-1 truncate text-sm text-gray-700">{file.name}</p>
-            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+            <p className="mt-1.5 truncate text-sm text-slate-700">{file.name}</p>
+            <p className="text-xs text-slate-500">{formatFileSize(file.size)}</p>
           </div>
           <button
             type="button"
             onClick={onFileClear}
-            className="flex-shrink-0 rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+            className="flex-shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="mt-3 text-xs text-green-700">
+        <p className="mt-4 text-xs text-success-700 bg-success-100/50 rounded-lg px-3 py-2">
           We'll extract sections from this template to structure your documentation.
         </p>
       </div>
@@ -113,19 +115,19 @@ export default function TemplateUpload({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div
         onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'relative cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all',
+          'relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200',
           isDragging
-            ? 'border-primary-400 bg-primary-50'
+            ? 'border-accent-400 bg-accent-50/50'
             : error
-              ? 'border-red-300 bg-red-50'
-              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+              ? 'border-danger-300 bg-danger-50/50'
+              : 'border-slate-300 bg-slate-50/50 hover:border-slate-400 hover:bg-slate-100/50'
         )}
       >
         <input
@@ -138,31 +140,30 @@ export default function TemplateUpload({
 
         <div className="flex flex-col items-center">
           <div className={cn(
-            'mb-3 rounded-full p-3',
-            isDragging ? 'bg-primary-100' : 'bg-gray-200'
+            'mb-4 rounded-xl p-4 transition-all',
+            isDragging
+              ? 'bg-accent-100 text-accent-600'
+              : 'bg-slate-100 text-slate-500'
           )}>
-            <Upload className={cn(
-              'h-6 w-6',
-              isDragging ? 'text-primary-600' : 'text-gray-500'
-            )} />
+            <Upload className="h-7 w-7" />
           </div>
-          <p className="text-sm font-medium text-gray-700">
+          <p className="text-sm font-semibold text-slate-700">
             {isDragging ? 'Drop file here' : 'Drag and drop your template'}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
-            or <span className="text-primary-600">browse</span> to upload
+          <p className="mt-1.5 text-sm text-slate-500">
+            or <span className="text-primary-600 font-medium hover:text-primary-700">browse</span> to upload
           </p>
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-3 text-xs text-slate-400">
             PDF or DOCX, max 10MB
           </p>
         </div>
       </div>
 
       {error && (
-        <p className="flex items-center gap-1 text-sm text-red-600">
-          <X className="h-4 w-4" />
-          {error}
-        </p>
+        <div className="flex items-center gap-2 rounded-lg bg-danger-50 px-3 py-2 text-sm border border-danger-200">
+          <X className="h-4 w-4 text-danger-500" />
+          <span className="text-danger-700">{error}</span>
+        </div>
       )}
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'react-hot-toast'
 import {
@@ -11,25 +11,99 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
-  Loader2,
+  Layers,
+  Sparkles,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
+import { Card } from '@/components/common/Card'
+import { PageLoading } from '@/components/common/Loading'
 import { templatesApi } from '@/api/sections'
 import { documentsApi } from '@/api/documents'
 import { useSession } from '@/context/SessionContext'
 import type { DocumentType } from '@/types'
 import { cn } from '@/utils/helpers'
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4 },
+  },
+}
+
 // Template icons mapping
 const templateIcons: Record<string, React.ReactNode> = {
-  'Requirements Document': <FileText className="h-8 w-8" />,
-  'Design Document': <Settings className="h-8 w-8" />,
-  'Technical Specification': <Code className="h-8 w-8" />,
-  'Technical Specification Document': <Code className="h-8 w-8" />,
-  'API Documentation': <FileCode className="h-8 w-8" />,
-  'User Guide': <BookOpen className="h-8 w-8" />,
-  'README': <FileText className="h-8 w-8" />,
-  'Developer Guide': <Code className="h-8 w-8" />,
+  'Requirements Document': <FileText className="h-7 w-7" />,
+  'Design Document': <Settings className="h-7 w-7" />,
+  'Technical Specification': <Code className="h-7 w-7" />,
+  'Technical Specification Document': <Code className="h-7 w-7" />,
+  'API Documentation': <FileCode className="h-7 w-7" />,
+  'User Guide': <BookOpen className="h-7 w-7" />,
+  'README': <FileText className="h-7 w-7" />,
+  'Developer Guide': <Code className="h-7 w-7" />,
+}
+
+// Template colors
+const templateColors: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
+  'Requirements Document': {
+    bg: 'bg-violet-50',
+    text: 'text-violet-600',
+    border: 'border-violet-200',
+    gradient: 'from-violet-500 to-violet-600',
+  },
+  'Design Document': {
+    bg: 'bg-amber-50',
+    text: 'text-amber-600',
+    border: 'border-amber-200',
+    gradient: 'from-amber-500 to-amber-600',
+  },
+  'Technical Specification': {
+    bg: 'bg-cyan-50',
+    text: 'text-cyan-600',
+    border: 'border-cyan-200',
+    gradient: 'from-cyan-500 to-cyan-600',
+  },
+  'Technical Specification Document': {
+    bg: 'bg-cyan-50',
+    text: 'text-cyan-600',
+    border: 'border-cyan-200',
+    gradient: 'from-cyan-500 to-cyan-600',
+  },
+  'API Documentation': {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-600',
+    border: 'border-emerald-200',
+    gradient: 'from-emerald-500 to-emerald-600',
+  },
+  'User Guide': {
+    bg: 'bg-rose-50',
+    text: 'text-rose-600',
+    border: 'border-rose-200',
+    gradient: 'from-rose-500 to-rose-600',
+  },
+  'README': {
+    bg: 'bg-slate-100',
+    text: 'text-slate-600',
+    border: 'border-slate-200',
+    gradient: 'from-slate-500 to-slate-600',
+  },
+  'Developer Guide': {
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-600',
+    border: 'border-indigo-200',
+    gradient: 'from-indigo-500 to-indigo-600',
+  },
 }
 
 // Template descriptions for display
@@ -44,12 +118,18 @@ const templateDescriptions: Record<string, string> = {
   'Developer Guide': 'Guide for developers contributing to the project',
 }
 
+const defaultColors = {
+  bg: 'bg-primary-50',
+  text: 'text-primary-600',
+  border: 'border-primary-200',
+  gradient: 'from-primary-500 to-primary-600',
+}
+
 export default function TemplateSelectionPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { updateDocument, getDocument } = useSession()
+  const { updateDocument } = useSession()
 
-  // Get projectId and documentId from navigation state
   const { projectId, documentId } = (location.state as {
     projectId?: string
     documentId?: string
@@ -57,13 +137,11 @@ export default function TemplateSelectionPage() {
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
 
-  // Fetch available templates
   const { data: templates, isLoading: templatesLoading } = useQuery({
     queryKey: ['templates'],
     queryFn: templatesApi.list,
   })
 
-  // Create document mutation
   const createDocumentMutation = useMutation({
     mutationFn: async (templateId: string) => {
       if (!projectId) throw new Error('Project ID is required')
@@ -78,7 +156,6 @@ export default function TemplateSelectionPage() {
       return { document, template }
     },
     onSuccess: ({ document, template }) => {
-      // Update session document
       if (documentId) {
         updateDocument(documentId, {
           templateId: document.document_type_id || undefined,
@@ -108,11 +185,6 @@ export default function TemplateSelectionPage() {
     createDocumentMutation.mutate(selectedTemplateId)
   }
 
-  const handleBack = () => {
-    navigate('/')
-  }
-
-  // Redirect if no project context
   useEffect(() => {
     if (!projectId) {
       toast.error('Please start by entering a GitHub repository')
@@ -122,78 +194,139 @@ export default function TemplateSelectionPage() {
 
   if (templatesLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary-600" />
-          <p className="mt-2 text-gray-600">Loading templates...</p>
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <PageLoading />
         </div>
-      </div>
+      </Layout>
     )
   }
 
+  const selectedTemplate = templates?.find(t => t.id === selectedTemplateId)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="mx-auto max-w-5xl px-4 py-12">
+    <Layout>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="mx-auto max-w-5xl"
+      >
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={handleBack}
-            className="mb-4 flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+        <motion.div variants={itemVariants} className="mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to repository input
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Choose a Template</h1>
-          <p className="mt-2 text-gray-600">
-            Select a documentation template that best fits your project needs.
-            We'll suggest relevant sections based on your codebase.
-          </p>
-        </div>
+            Back to start
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-lg shadow-primary-500/25">
+              <Layers className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Choose a Template</h1>
+              <p className="text-slate-500">Select a documentation type for your project</p>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Template Grid */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {templates?.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              isSelected={selectedTemplateId === template.id}
-              onSelect={() => handleSelectTemplate(template.id)}
-            />
-          ))}
-        </div>
+        <motion.div variants={itemVariants}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <AnimatePresence>
+              {templates?.map((template, index) => (
+                <motion.div
+                  key={template.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <TemplateCard
+                    template={template}
+                    isSelected={selectedTemplateId === template.id}
+                    onSelect={() => handleSelectTemplate(template.id)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </motion.div>
 
         {/* Selected Template Info */}
-        {selectedTemplateId && (
-          <div className="mb-8 rounded-lg border border-primary-200 bg-primary-50 p-4">
-            <div className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-primary-600" />
-              <span className="font-medium text-primary-900">
-                Selected: {templates?.find(t => t.id === selectedTemplateId)?.name}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-primary-700">
-              Click "Continue" to proceed with section configuration
+        <AnimatePresence>
+          {selectedTemplate && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mt-8"
+            >
+              <Card variant="ghost" className="bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-md">
+                    <Check className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900">
+                      Selected: {selectedTemplate.name}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      {templateDescriptions[selectedTemplate.name] || selectedTemplate.description}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleContinue}
+                    isLoading={createDocumentMutation.isPending}
+                    leftIcon={<Sparkles className="h-5 w-5" />}
+                    rightIcon={<ArrowRight className="h-5 w-5" />}
+                  >
+                    Configure Sections
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action Buttons (shown when no template selected) */}
+        {!selectedTemplate && (
+          <motion.div variants={itemVariants} className="mt-8 flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+              leftIcon={<ArrowLeft className="h-4 w-4" />}
+            >
+              Back
+            </Button>
+            <p className="text-sm text-slate-500">
+              Select a template above to continue
             </p>
-          </div>
+          </motion.div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={handleBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          <Button
-            onClick={handleContinue}
-            disabled={!selectedTemplateId || createDocumentMutation.isPending}
-            isLoading={createDocumentMutation.isPending}
-          >
-            Continue to Section Review
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
+        {/* Tips */}
+        <motion.div variants={itemVariants} className="mt-8">
+          <Card variant="ghost" className="bg-slate-50/50">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-200">
+                <FileText className="h-5 w-5 text-slate-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-1">Not sure which template?</h3>
+                <p className="text-sm text-slate-600">
+                  Start with <span className="font-medium">Technical Specification</span> for comprehensive project docs,
+                  or <span className="font-medium">README</span> for a quick project overview.
+                  You can customize sections in the next step.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      </motion.div>
+    </Layout>
   )
 }
 
@@ -204,51 +337,67 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, isSelected, onSelect }: TemplateCardProps) {
-  const icon = templateIcons[template.name] || <FileText className="h-8 w-8" />
+  const icon = templateIcons[template.name] || <FileText className="h-7 w-7" />
+  const colors = templateColors[template.name] || defaultColors
   const description = templateDescriptions[template.name] || template.description || 'Documentation template'
 
   return (
-    <button
+    <motion.button
       onClick={onSelect}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        'relative flex flex-col items-start rounded-xl border-2 bg-white p-6 text-left transition-all hover:shadow-md',
+        'relative flex flex-col items-start rounded-2xl border-2 bg-white p-6 text-left transition-all w-full h-full',
         isSelected
-          ? 'border-primary-500 ring-2 ring-primary-100'
-          : 'border-gray-200 hover:border-gray-300'
+          ? 'border-primary-500 shadow-lg shadow-primary-500/10'
+          : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
       )}
     >
       {/* Selection indicator */}
-      {isSelected && (
-        <div className="absolute right-3 top-3 rounded-full bg-primary-500 p-1">
-          <Check className="h-4 w-4 text-white" />
-        </div>
-      )}
+      <AnimatePresence>
+        {isSelected && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 shadow-md"
+          >
+            <Check className="h-4 w-4 text-white" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Icon */}
       <div className={cn(
-        'mb-4 rounded-lg p-3',
-        isSelected ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-600'
+        'mb-4 rounded-xl p-3 transition-all',
+        isSelected
+          ? `bg-gradient-to-br ${colors.gradient} text-white shadow-md`
+          : `${colors.bg} ${colors.text}`
       )}>
         {icon}
       </div>
 
       {/* Content */}
       <h3 className={cn(
-        'mb-2 font-semibold',
-        isSelected ? 'text-primary-900' : 'text-gray-900'
+        'mb-2 font-semibold transition-colors',
+        isSelected ? 'text-primary-900' : 'text-slate-900'
       )}>
         {template.name}
       </h3>
-      <p className="text-sm text-gray-600 line-clamp-2">
+      <p className="text-sm text-slate-500 line-clamp-2 flex-1">
         {description}
       </p>
 
       {/* System badge */}
       {template.is_system && (
-        <span className="mt-3 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+        <span className={cn(
+          'mt-4 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium',
+          isSelected ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-600'
+        )}>
           Built-in
         </span>
       )}
-    </button>
+    </motion.button>
   )
 }

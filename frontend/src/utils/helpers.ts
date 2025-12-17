@@ -1,7 +1,8 @@
 import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs)
+  return twMerge(clsx(inputs))
 }
 
 export function formatDate(dateString: string): string {
@@ -32,15 +33,17 @@ export function truncate(str: string, length: number): string {
 export function getStatusColor(status: string): string {
   switch (status) {
     case 'draft':
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-slate-100 text-slate-700'
     case 'sections_approved':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-primary-100 text-primary-700'
     case 'generating':
-      return 'bg-yellow-100 text-yellow-800'
+      return 'bg-accent-100 text-accent-700'
     case 'completed':
-      return 'bg-green-100 text-green-800'
+      return 'bg-success-100 text-success-700'
+    case 'editing':
+      return 'bg-amber-100 text-amber-700'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-slate-100 text-slate-700'
   }
 }
 
@@ -49,12 +52,31 @@ export function getStatusLabel(status: string): string {
     case 'draft':
       return 'Draft'
     case 'sections_approved':
-      return 'Sections Approved'
+      return 'Ready'
     case 'generating':
-      return 'Generating...'
+      return 'Generating'
     case 'completed':
-      return 'Completed'
+      return 'Complete'
+    case 'editing':
+      return 'Editing'
     default:
       return status
+  }
+}
+
+export function getStatusIcon(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'file'
+    case 'sections_approved':
+      return 'check-circle'
+    case 'generating':
+      return 'loader'
+    case 'completed':
+      return 'check-circle-2'
+    case 'editing':
+      return 'edit'
+    default:
+      return 'file'
   }
 }

@@ -4,14 +4,16 @@ import {
   FileText,
   Plus,
   Trash2,
-  ChevronRight,
   Clock,
   CheckCircle,
   Loader2,
   Edit3,
-  X,
   Home,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useSession, DocumentStatus } from '@/context/SessionContext'
 import { cn } from '@/utils/helpers'
 
@@ -27,7 +29,6 @@ export default function DocumentSidebar() {
 
   const handleSelectDocument = (docId: string) => {
     setActiveDocument(docId)
-    // Navigate to appropriate page based on document status
     const doc = documents.find(d => d.id === docId)
     if (doc) {
       switch (doc.status) {
@@ -53,161 +54,227 @@ export default function DocumentSidebar() {
     }
   }
 
-  const getStatusIcon = (status: DocumentStatus) => {
+  const getStatusConfig = (status: DocumentStatus) => {
     switch (status) {
       case 'analyzing':
-        return <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+        return {
+          icon: Loader2,
+          label: 'Analyzing',
+          color: 'text-accent-500',
+          bgColor: 'bg-accent-50',
+          animate: true,
+        }
       case 'ready':
-        return <Clock className="h-3 w-3 text-yellow-500" />
+        return {
+          icon: Clock,
+          label: 'Ready',
+          color: 'text-amber-500',
+          bgColor: 'bg-amber-50',
+          animate: false,
+        }
       case 'generating':
-        return <Loader2 className="h-3 w-3 animate-spin text-primary-500" />
+        return {
+          icon: Sparkles,
+          label: 'Generating',
+          color: 'text-primary-500',
+          bgColor: 'bg-primary-50',
+          animate: true,
+        }
       case 'editing':
-        return <Edit3 className="h-3 w-3 text-orange-500" />
+        return {
+          icon: Edit3,
+          label: 'Editing',
+          color: 'text-orange-500',
+          bgColor: 'bg-orange-50',
+          animate: false,
+        }
       case 'completed':
-        return <CheckCircle className="h-3 w-3 text-green-500" />
-    }
-  }
-
-  const getStatusLabel = (status: DocumentStatus) => {
-    switch (status) {
-      case 'analyzing':
-        return 'Analyzing'
-      case 'ready':
-        return 'Ready'
-      case 'generating':
-        return 'Generating'
-      case 'editing':
-        return 'Editing'
-      case 'completed':
-        return 'Completed'
+        return {
+          icon: CheckCircle,
+          label: 'Completed',
+          color: 'text-success-500',
+          bgColor: 'bg-success-50',
+          animate: false,
+        }
     }
   }
 
   if (documents.length === 0) {
-    return null // Don't show sidebar if no documents
+    return null
   }
 
   return (
-    <div className={cn(
-      'fixed left-0 top-0 z-40 h-full bg-white shadow-lg transition-all',
-      isExpanded ? 'w-64' : 'w-12'
-    )}>
-      {/* Header */}
-      <div className="flex h-14 items-center justify-between border-b px-3">
-        {isExpanded && (
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary-600" />
-            <span className="font-semibold text-gray-900">Documents</span>
-          </div>
-        )}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <ChevronRight className={cn(
-            'h-5 w-5 transition-transform',
-            isExpanded && 'rotate-180'
-          )} />
-        </button>
-      </div>
+    <motion.div
+      initial={false}
+      animate={{ width: isExpanded ? 256 : 64 }}
+      transition={{ duration: 0.2, ease: 'easeInOut' }}
+      className="fixed left-0 top-0 z-40 h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 shadow-2xl"
+    >
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-accent-500/5 pointer-events-none" />
 
-      {/* Content */}
-      <div className="flex h-[calc(100%-3.5rem)] flex-col">
-        {isExpanded ? (
-          <>
-            {/* Home Link */}
-            <button
-              onClick={() => navigate('/')}
-              className={cn(
-                'flex items-center gap-2 border-b px-3 py-2 text-sm text-gray-600 hover:bg-gray-50',
-                location.pathname === '/' && 'bg-gray-50 text-primary-600'
-              )}
-            >
+      <div className="relative flex h-full flex-col">
+        {/* Header */}
+        <div className="flex h-16 items-center justify-between border-b border-slate-700/50 px-4">
+          <AnimatePresence mode="wait">
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="flex items-center gap-2"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-primary-500 to-accent-500">
+                  <FileText className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-semibold text-white">Documents</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            {isExpanded ? (
+              <PanelLeftClose className="h-5 w-5" />
+            ) : (
+              <PanelLeft className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex h-[calc(100%-4rem)] flex-col">
+          {/* Home Link */}
+          <button
+            onClick={() => navigate('/')}
+            className={cn(
+              'flex items-center gap-3 border-b border-slate-700/50 px-4 py-3 text-sm transition-colors',
+              location.pathname === '/'
+                ? 'bg-slate-800/50 text-white'
+                : 'text-slate-400 hover:bg-slate-800/30 hover:text-white'
+            )}
+          >
+            <div className={cn(
+              'flex h-8 w-8 items-center justify-center rounded-lg',
+              location.pathname === '/'
+                ? 'bg-primary-500/20 text-primary-400'
+                : 'bg-slate-800/50 text-slate-400'
+            )}>
               <Home className="h-4 w-4" />
-              Home
-            </button>
+            </div>
+            <AnimatePresence mode="wait">
+              {isExpanded && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  Home
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
 
-            {/* Document List */}
-            <div className="flex-1 overflow-y-auto py-2">
-              {documents.map((doc) => (
+          {/* Document List */}
+          <div className="flex-1 overflow-y-auto py-3 px-2">
+            {documents.map((doc) => {
+              const statusConfig = getStatusConfig(doc.status)
+              const StatusIcon = statusConfig.icon
+              const isActive = activeDocumentId === doc.id
+
+              return (
                 <div
                   key={doc.id}
                   onClick={() => handleSelectDocument(doc.id)}
                   className={cn(
-                    'group mx-2 mb-1 cursor-pointer rounded-lg px-3 py-2 transition-colors',
-                    activeDocumentId === doc.id
-                      ? 'bg-primary-50 text-primary-900'
-                      : 'hover:bg-gray-50'
+                    'group relative mb-1 cursor-pointer rounded-xl px-3 py-2.5 transition-all duration-200',
+                    isActive
+                      ? 'bg-gradient-to-r from-primary-500/20 to-primary-500/10 text-white'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                   )}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {doc.title}
-                      </p>
-                      <div className="mt-1 flex items-center gap-1">
-                        {getStatusIcon(doc.status)}
-                        <span className="text-xs text-gray-500">
-                          {getStatusLabel(doc.status)}
-                        </span>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors',
+                      isActive ? statusConfig.bgColor : 'bg-slate-800/50'
+                    )}>
+                      <StatusIcon className={cn(
+                        'h-4 w-4',
+                        isActive ? statusConfig.color : 'text-slate-500',
+                        statusConfig.animate && 'animate-spin'
+                      )} />
                     </div>
-                    <button
-                      onClick={(e) => handleDeleteDocument(e, doc.id)}
-                      className="rounded p-1 text-gray-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            {/* New Document Button */}
-            <div className="border-t p-3">
-              <button
-                onClick={handleNewDocument}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
-              >
-                <Plus className="h-4 w-4" />
-                New Document
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-2 py-2">
-            <button
-              onClick={() => navigate('/')}
-              className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              title="Home"
-            >
-              <Home className="h-5 w-5" />
-            </button>
-            {documents.map((doc) => (
-              <button
-                key={doc.id}
-                onClick={() => handleSelectDocument(doc.id)}
-                className={cn(
-                  'rounded p-2',
-                  activeDocumentId === doc.id
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-                )}
-                title={doc.title}
-              >
-                {getStatusIcon(doc.status)}
-              </button>
-            ))}
+                    <AnimatePresence mode="wait">
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="min-w-0 flex-1"
+                        >
+                          <p className="truncate text-sm font-medium">
+                            {doc.title}
+                          </p>
+                          <div className="mt-0.5 flex items-center gap-1">
+                            <span className={cn(
+                              'text-xs',
+                              isActive ? statusConfig.color : 'text-slate-500'
+                            )}>
+                              {statusConfig.label}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {isExpanded && (
+                      <button
+                        onClick={(e) => handleDeleteDocument(e, doc.id)}
+                        className="rounded-lg p-1.5 text-slate-500 opacity-0 hover:bg-red-500/20 hover:text-red-400 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeDocIndicator"
+                      className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary-500"
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* New Document Button */}
+          <div className="border-t border-slate-700/50 p-3">
             <button
               onClick={handleNewDocument}
-              className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              title="New Document"
+              className={cn(
+                'flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-600 py-2.5 text-sm text-slate-400 transition-all',
+                'hover:border-primary-500/50 hover:bg-primary-500/10 hover:text-primary-400'
+              )}
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
+              <AnimatePresence mode="wait">
+                {isExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    New Document
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
