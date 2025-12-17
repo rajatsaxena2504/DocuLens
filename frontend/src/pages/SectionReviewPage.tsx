@@ -123,6 +123,24 @@ export default function SectionReviewPage() {
     })
   }
 
+  const handleMoveSection = (index: number, direction: 'up' | 'down') => {
+    if (!documentId) return
+
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= sections.length) return
+
+    const newSections = arrayMove(sections, index, newIndex)
+    setSections(newSections)
+
+    // Update server
+    reorderSections.mutate({
+      documentId,
+      data: {
+        section_orders: newSections.map((s, i) => ({ id: s.id, display_order: i + 1 })),
+      },
+    })
+  }
+
   const handleUpdateSection = (sectionId: string, updates: Partial<DocumentSection>) => {
     if (!documentId) return
 
@@ -335,8 +353,11 @@ export default function SectionReviewPage() {
                           key={section.id}
                           section={section}
                           index={index}
+                          totalCount={sections.length}
                           onUpdate={(updates) => handleUpdateSection(section.id, updates)}
                           onRemove={() => handleRemoveSection(section.id)}
+                          onMoveUp={() => handleMoveSection(index, 'up')}
+                          onMoveDown={() => handleMoveSection(index, 'down')}
                         />
                       ))}
                     </div>

@@ -25,6 +25,7 @@ import {
   useUpdateSectionContent,
   useAddSection,
   useDeleteSection,
+  useGenerateDocument,
 } from '@/hooks/useDocuments'
 import { cn, getStatusColor, getStatusLabel } from '@/utils/helpers'
 import type { DocumentSection } from '@/types'
@@ -41,6 +42,7 @@ export default function DocumentEditorPage() {
   const updateContent = useUpdateSectionContent()
   const addSection = useAddSection()
   const deleteSection = useDeleteSection()
+  const generateDocument = useGenerateDocument()
 
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [editedContent, setEditedContent] = useState<string>('')
@@ -48,6 +50,8 @@ export default function DocumentEditorPage() {
   const [showTOC, setShowTOC] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+  const [isAutoGenerating, setIsAutoGenerating] = useState(false)
+  const [autoGenerateTriggered, setAutoGenerateTriggered] = useState(false)
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
@@ -70,6 +74,47 @@ export default function DocumentEditorPage() {
       updateSessionDoc(documentId, { status: 'editing' })
     }
   }, [documentId, document])
+
+  // Auto-generate content if sections are empty
+  useEffect(() => {
+    if (
+      document &&
+      documentId &&
+      !autoGenerateTriggered &&
+      !isAutoGenerating &&
+      !generateDocument.isPending
+    ) {
+      const includedSections = document.sections.filter(s => s.is_included)
+      const sectionsNeedingContent = includedSections.filter(s => !s.content)
+
+      if (includedSections.length > 0 && sectionsNeedingContent.length === includedSections.length) {
+        // All sections need content - trigger full generation
+        setIsAutoGenerating(true)
+        setAutoGenerateTriggered(true)
+        toast.loading('Generating documentation content...', { id: 'auto-generate' })
+
+        generateDocument.mutate(documentId, {
+          onSuccess: (result) => {
+            const placeholderCount = result.results?.filter((r: any) => r.used_placeholder).length || 0
+            if (placeholderCount > 0) {
+              toast.success(
+                `Content generated! ${placeholderCount} section(s) used placeholder content - AI was unavailable.`,
+                { id: 'auto-generate', duration: 6000 }
+              )
+            } else {
+              toast.success('Content generated!', { id: 'auto-generate' })
+            }
+            setIsAutoGenerating(false)
+            refetch()
+          },
+          onError: () => {
+            toast.error('Failed to generate content', { id: 'auto-generate' })
+            setIsAutoGenerating(false)
+          },
+        })
+      }
+    }
+  }, [document, documentId, autoGenerateTriggered, isAutoGenerating])
 
   const selectedSection = document?.sections.find(s => s.id === selectedSectionId)
 
@@ -186,8 +231,22 @@ export default function DocumentEditorPage() {
     }, 100)
   }
 
-  if (isLoading) {
-    return <PageLoading />
+  if (isLoading || isAutoGenerating) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary-600" />
+          <p className="mt-4 font-medium text-gray-900">
+            {isAutoGenerating ? 'Generating documentation content...' : 'Loading document...'}
+          </p>
+          {isAutoGenerating && (
+            <p className="mt-1 text-sm text-gray-500">
+              AI is analyzing your code and creating content for each section
+            </p>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (!document) {

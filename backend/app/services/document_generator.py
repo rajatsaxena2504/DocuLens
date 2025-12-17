@@ -41,7 +41,7 @@ class DocumentGenerator:
                     continue
 
                 try:
-                    content = self._generate_section_content(
+                    content, used_placeholder = self._generate_section_content(
                         section=section,
                         code_path=code_path,
                         analysis_data=analysis_data,
@@ -55,6 +55,7 @@ class DocumentGenerator:
                         'title': section.title,
                         'success': True,
                         'content_id': str(generated.id),
+                        'used_placeholder': used_placeholder,
                     })
 
                 except Exception as e:
@@ -96,7 +97,7 @@ class DocumentGenerator:
         analysis_data = project.analysis_data or {}
         doc_type_name = document.document_type.name if document.document_type else "Technical Documentation"
 
-        content = self._generate_section_content(
+        content, used_placeholder = self._generate_section_content(
             section=section,
             code_path=code_path,
             analysis_data=analysis_data,
@@ -110,6 +111,7 @@ class DocumentGenerator:
             'title': section.title,
             'content_id': str(generated.id),
             'content': content,
+            'used_placeholder': used_placeholder,
         }
 
     def _get_code_path(self, project: Project) -> str:
@@ -124,8 +126,12 @@ class DocumentGenerator:
         code_path: str,
         analysis_data: dict[str, Any],
         doc_type_name: str,
-    ) -> str:
-        """Generate content for a single section."""
+    ) -> tuple[str, bool]:
+        """Generate content for a single section.
+
+        Returns:
+            tuple: (content, used_placeholder) - content string and whether placeholder was used
+        """
         # Get relevant files for this section
         relevant_files = self.code_analyzer.get_relevant_files_for_section(
             code_path,
@@ -144,16 +150,17 @@ class DocumentGenerator:
 
         try:
             # Generate content using Claude
-            return self.claude_service.generate_section_content(
+            content = self.claude_service.generate_section_content(
                 section_title=section.title,
                 section_description=section.description,
                 code_context=code_context,
                 document_type=doc_type_name,
             )
+            return content, False
         except Exception as e:
             # Fallback: generate placeholder content when AI fails
             print(f"AI generation failed for section '{section.title}': {e}")
-            return self._generate_placeholder_content(section, analysis_data, relevant_files)
+            return self._generate_placeholder_content(section, analysis_data, relevant_files), True
 
     def _generate_placeholder_content(
         self,

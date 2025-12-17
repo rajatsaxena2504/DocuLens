@@ -76,7 +76,16 @@ export default function GenerationProgressPage() {
         }
       }
 
-      toast.success('Documentation generated successfully!')
+      // Check if any sections used placeholder content
+      const placeholderCount = result.results?.filter((r: any) => r.used_placeholder).length || 0
+      if (placeholderCount > 0) {
+        toast.success(
+          `Documentation generated! ${placeholderCount} section(s) used placeholder content due to AI unavailability.`,
+          { duration: 6000 }
+        )
+      } else {
+        toast.success('Documentation generated successfully!')
+      }
     },
     onError: (error: Error) => {
       setHasErrors(true)

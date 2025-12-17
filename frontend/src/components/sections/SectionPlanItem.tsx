@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Square,
   CheckSquare,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -18,15 +20,21 @@ import type { DocumentSection } from '@/types'
 interface SectionPlanItemProps {
   section: DocumentSection
   index: number
+  totalCount: number
   onUpdate: (updates: { custom_title?: string; custom_description?: string; is_included?: boolean }) => void
   onRemove: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
 }
 
 export default function SectionPlanItem({
   section,
   index,
+  totalCount,
   onUpdate,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: SectionPlanItemProps) {
   const [isExpanded, setIsExpanded] = useState(true)  // Auto-expand to show description
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -201,6 +209,44 @@ export default function SectionPlanItem({
 
         {/* Actions */}
         <div className="flex items-center gap-1">
+          {/* Move Up */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onMoveUp()
+            }}
+            disabled={index === 0}
+            className={cn(
+              'rounded p-1 transition-colors',
+              index === 0
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+            )}
+            title="Move up"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+
+          {/* Move Down */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onMoveDown()
+            }}
+            disabled={index === totalCount - 1}
+            className={cn(
+              'rounded p-1 transition-colors',
+              index === totalCount - 1
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+            )}
+            title="Move down"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </button>
+
+          <div className="w-px h-4 bg-gray-200 mx-1" />
+
           {/* Expand/collapse */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}

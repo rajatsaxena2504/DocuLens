@@ -3,6 +3,30 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Bold, Italic, List, ListOrdered, Code, Heading1, Heading2 } from 'lucide-react'
 import { cn } from '@/utils/helpers'
+import { marked } from 'marked'
+import { useMemo, useEffect } from 'react'
+
+// Configure marked for safe HTML output
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+})
+
+// Check if content looks like markdown (not HTML)
+function isMarkdown(content: string): boolean {
+  if (!content || content.trim().startsWith('<')) return false
+  // Check for common markdown patterns
+  return /^#{1,6}\s|^\*\s|^-\s|^\d+\.\s|\*\*.*\*\*|__.*__|`.*`|\[.*\]\(.*\)/m.test(content)
+}
+
+// Convert markdown to HTML if needed
+function toHtml(content: string): string {
+  if (!content) return ''
+  if (isMarkdown(content)) {
+    return marked.parse(content, { async: false }) as string
+  }
+  return content
+}
 
 interface RichTextEditorProps {
   content: string
@@ -17,17 +41,27 @@ export default function RichTextEditor({
   placeholder = 'Start writing...',
   editable = true,
 }: RichTextEditorProps) {
+  // Convert markdown to HTML
+  const htmlContent = useMemo(() => toHtml(content), [content])
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder }),
     ],
-    content,
+    content: htmlContent,
     editable,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
   })
+
+  // Update editor content when prop changes
+  useEffect(() => {
+    if (editor && htmlContent !== editor.getHTML()) {
+      editor.commands.setContent(htmlContent)
+    }
+  }, [editor, htmlContent])
 
   if (!editor) return null
 

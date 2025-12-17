@@ -152,42 +152,62 @@ def export_document(
 
     elif format == "pdf":
         try:
-            import markdown
-            from weasyprint import HTML
+            from fpdf import FPDF
+            import re
 
-            # Convert markdown to HTML
-            html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <style>
-                    body {{ font-family: Arial, sans-serif; margin: 40px; }}
-                    h1 {{ color: #333; }}
-                    h2 {{ color: #555; border-bottom: 1px solid #ddd; }}
-                    pre {{ background: #f5f5f5; padding: 10px; }}
-                    code {{ background: #f5f5f5; padding: 2px 5px; }}
-                </style>
-            </head>
-            <body>
-            <h1>{document.title}</h1>
-            """
+            class PDF(FPDF):
+                def header(self):
+                    self.set_font('Helvetica', 'B', 12)
+                    self.cell(0, 10, document.title, align='C', new_x='LMARGIN', new_y='NEXT')
+                    self.ln(5)
+
+                def footer(self):
+                    self.set_y(-15)
+                    self.set_font('Helvetica', 'I', 8)
+                    self.cell(0, 10, f'Page {self.page_no()}', align='C')
+
+            pdf = PDF()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+
+            # Title
+            pdf.set_font('Helvetica', 'B', 24)
+            pdf.cell(0, 15, document.title, new_x='LMARGIN', new_y='NEXT')
+            pdf.ln(10)
 
             for section in document.sections:
                 if not section.is_included:
                     continue
 
-                html_content += f"<h2>{section.title}</h2>"
+                # Section title
+                pdf.set_font('Helvetica', 'B', 16)
+                pdf.set_text_color(51, 51, 51)
+                pdf.cell(0, 10, section.title, new_x='LMARGIN', new_y='NEXT')
+                pdf.ln(3)
 
+                # Section content
                 if section.generated_content:
                     content = section.generated_content[0].content
-                    html_content += markdown.markdown(content, extensions=['fenced_code', 'tables'])
+                    # Strip markdown formatting for PDF
+                    content = re.sub(r'\*\*(.+?)\*\*', r'\1', content)  # Bold
+                    content = re.sub(r'\*(.+?)\*', r'\1', content)  # Italic
+                    content = re.sub(r'^#{1,6}\s+', '', content, flags=re.MULTILINE)  # Headers
+                    content = re.sub(r'`(.+?)`', r'\1', content)  # Inline code
+                    content = re.sub(r'```[\s\S]*?```', '[Code Block]', content)  # Code blocks
 
-            html_content += "</body></html>"
+                    pdf.set_font('Helvetica', '', 11)
+                    pdf.set_text_color(0, 0, 0)
+                    pdf.multi_cell(0, 6, content)
+                else:
+                    pdf.set_font('Helvetica', 'I', 11)
+                    pdf.set_text_color(128, 128, 128)
+                    pdf.cell(0, 10, 'No content generated yet.', new_x='LMARGIN', new_y='NEXT')
 
-            # Generate PDF
+                pdf.ln(8)
+
+            # Output PDF
             pdf_bytes = io.BytesIO()
-            HTML(string=html_content).write_pdf(pdf_bytes)
+            pdf.output(pdf_bytes)
             pdf_bytes.seek(0)
 
             return StreamingResponse(
@@ -199,7 +219,7 @@ def export_document(
         except ImportError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="PDF export not available",
+                detail="PDF export not available - fpdf2 not installed",
             )
 
     else:
