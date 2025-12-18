@@ -52,35 +52,104 @@ DocuLens is a full-stack application that automatically generates professional d
 - Node.js 18+
 - Git
 
-### 1. Clone the repository
+### Clone the repository
 ```bash
 git clone https://github.com/rajatsaxena2504/DocuLens.git
 cd DocuLens
 ```
 
-### 2. Set up environment variables
+---
+
+## Option A: Local Setup (Recommended)
+
+### Linux/macOS
+
+**One-time setup:**
 ```bash
-cp .env.example .env
+./setup-local.sh
 ```
 
-Edit `.env` with your preferred AI provider (see [AI Configuration](#ai-configuration) below).
+**Add your AI API key:**
+Edit `backend/.env` and set your Gemini key (or other provider):
+```
+GEMINI_API_KEY=your-gemini-key-here
+```
 
-### 3. Start the Backend
+**Run the application:**
 ```bash
+./run-local.sh
+```
+
+### Windows (VS Code Terminal / PowerShell)
+
+**One-time setup:**
+```powershell
+# Setup Backend
 cd backend
+python -m venv venv
+.\venv\Scripts\activate
 pip install -r requirements.txt
-python -m app.data.seed  # Seed templates and sections
+
+# Create backend/.env file with:
+# DATABASE_URL=sqlite:///./doculens.db
+# SECRET_KEY=local-dev-secret-key
+# GEMINI_API_KEY=your-gemini-key-here
+# GEMINI_MODEL=gemini-2.0-flash
+
+# Seed the database
+python -m app.data.seed
+
+# Setup Frontend (new terminal)
+cd frontend
+npm install
+echo VITE_API_URL=http://localhost:8000 > .env
+```
+
+**Run the application (two terminals):**
+
+Terminal 1 - Backend:
+```powershell
+cd backend
+.\venv\Scripts\activate
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 4. Start the Frontend
-```bash
+Terminal 2 - Frontend:
+```powershell
 cd frontend
-npm install
 npm run dev
 ```
 
-Frontend runs on http://localhost:5173
+---
+
+## Option B: Docker Setup
+
+**One-time setup:**
+```bash
+cp .env.example .env
+# Edit .env with your AI API keys
+```
+
+**Run with Docker Compose:**
+```bash
+docker compose up --build
+```
+
+**After containers start, seed the database:**
+```bash
+docker exec docugen-backend alembic stamp head
+docker exec docugen-backend python -m app.data.seed
+```
+
+---
+
+## Access the Application
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
 
 ## 📖 Usage
 
