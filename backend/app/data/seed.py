@@ -6,6 +6,79 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
 from app.models import DocumentType, Section, DocumentTypeSection, SDLCStage
 
+# Predefined SDLC stages
+SDLC_STAGES = [
+    {
+        'id': '10000000-0000-0000-0000-000000000001',
+        'name': 'Requirements',
+        'description': 'Business and functional requirements documentation',
+        'display_order': 1,
+        'icon': 'clipboard-list',
+        'color': 'violet',
+    },
+    {
+        'id': '10000000-0000-0000-0000-000000000002',
+        'name': 'Design',
+        'description': 'System and software design documentation',
+        'display_order': 2,
+        'icon': 'drafting-compass',
+        'color': 'blue',
+    },
+    {
+        'id': '10000000-0000-0000-0000-000000000003',
+        'name': 'Development',
+        'description': 'Development guides and API documentation',
+        'display_order': 3,
+        'icon': 'code',
+        'color': 'emerald',
+    },
+    {
+        'id': '10000000-0000-0000-0000-000000000004',
+        'name': 'Testing',
+        'description': 'Test plans and quality assurance documentation',
+        'display_order': 4,
+        'icon': 'flask-conical',
+        'color': 'amber',
+    },
+    {
+        'id': '10000000-0000-0000-0000-000000000005',
+        'name': 'Deployment',
+        'description': 'Deployment guides and release documentation',
+        'display_order': 5,
+        'icon': 'rocket',
+        'color': 'rose',
+    },
+    {
+        'id': '10000000-0000-0000-0000-000000000006',
+        'name': 'Maintenance',
+        'description': 'Operations and maintenance documentation',
+        'display_order': 6,
+        'icon': 'wrench',
+        'color': 'slate',
+    },
+]
+
+
+def seed_sdlc_stages(db: Session) -> None:
+    """Seed SDLC stages."""
+    for stage_data in SDLC_STAGES:
+        existing = db.query(SDLCStage).filter(SDLCStage.id == stage_data['id']).first()
+        if existing:
+            continue
+
+        stage = SDLCStage(
+            id=uuid.UUID(stage_data['id']),
+            name=stage_data['name'],
+            description=stage_data['description'],
+            display_order=stage_data['display_order'],
+            icon=stage_data['icon'],
+            color=stage_data['color'],
+        )
+        db.add(stage)
+
+    db.commit()
+    print(f"Seeded {len(SDLC_STAGES)} SDLC stages")
+
 
 def load_json_file(filename: str) -> list:
     """Load JSON data from file."""
@@ -100,6 +173,7 @@ def run_seed():
     db = SessionLocal()
     try:
         print("Starting database seed...")
+        seed_sdlc_stages(db)  # Seed stages first (document types depend on them)
         section_id_map = seed_sections(db)
         seed_document_types(db, section_id_map)
         print("Database seeding completed successfully!")
