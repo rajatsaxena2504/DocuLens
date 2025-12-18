@@ -24,7 +24,11 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-docugen}:${POSTGRES_PASSWORD:-docugen_password}@db:5432/${POSTGRES_DB:-docugen}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - DATABRICKS_HOST=${DATABRICKS_HOST:-}
+      - DATABRICKS_TOKEN=${DATABRICKS_TOKEN:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - UPLOAD_DIR=/app/uploads
     volumes:
