@@ -155,8 +155,6 @@ def export_document(
     elif format == "docx":
         try:
             from docx import Document as DocxDocument
-            from docx.shared import Inches, Pt
-            import markdown
 
             doc = DocxDocument()
             doc.add_heading(document.title, 0)
@@ -303,7 +301,7 @@ def export_project_bundle(
         stage_id: Optional - filter to only documents from this stage
         format: Export format (markdown only for bundle)
     """
-    from app.models import Project, SDLCProject
+    from app.models import SDLCProject
 
     # Get the SDLC project
     sdlc_project = db.query(SDLCProject).filter(

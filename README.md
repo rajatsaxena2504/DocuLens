@@ -11,10 +11,18 @@ DocuLens is a full-stack application that automatically generates professional d
 - **AI-Powered Generation**: Generate professional documentation using your preferred AI provider
 - **Human-in-the-Loop**: Review and customize AI-suggested sections before generation
 
+### Multi-Tenant & Collaboration
+- **Organizations**: Create teams with role-based access (admin, editor, viewer)
+- **Project Teams**: Invite members to projects with owner/editor/viewer roles
+- **Document Versioning**: Save snapshots, compare versions side-by-side, restore any version
+- **Review Workflow**: Submit documents for review, request changes, approve with comments
+- **Section-Level Comments**: Reviewers can comment on specific sections
+
 ### Template & Section Libraries
 - **Template Library**: Browse all document templates organized by SDLC stage, view sections, and edit section descriptions centrally
 - **Section Library**: View all available sections and see which templates use them (read-only reference)
 - **Central Description Management**: Edit section descriptions once in Template Library - changes propagate to all documents using that section
+- **Organization Templates**: Admins can create and manage organization-specific templates
 
 ### Document Editor
 - **Real-time Progress**: Visual progress bar showing generation status for each section
@@ -22,6 +30,24 @@ DocuLens is a full-stack application that automatically generates professional d
 - **Rich Text Editor**: Edit generated content with full markdown support
 - **Section Reordering**: Drag-and-drop to reorganize sections
 - **Multi-Format Export**: Export to Markdown, DOCX, or PDF
+
+### External Integrations
+- **Jira Connector**: Import issues and user stories into documentation
+- **Confluence Connector**: Pull existing documentation from Confluence spaces
+- **Miro Connector**: Import diagrams and boards
+- **SharePoint Connector**: Access enterprise documents
+
+### Data Documentation (STTM)
+- **Source-to-Target Mapping**: Document ETL/data transformations with spreadsheet-like interface
+- **Transformation Types**: Direct, derived, constant, lookup, aggregate, conditional mappings
+- **CSV Import/Export**: Bulk import from existing mapping spreadsheets
+- **Auto-Generate Narratives**: Convert mappings to readable documentation
+
+### File-Level Documentation
+- **File Browser**: Navigate project files with tree structure
+- **Per-File Analysis**: Auto-extract functions, classes, imports, dependencies
+- **Supported File Types**: Python (AST), SQL, Jupyter notebooks, JavaScript/TypeScript
+- **File-Specific Templates**: Suggested sections based on file type
 
 ### AI Providers (Priority Order)
 1. **Ollama / LM Studio** - Local models (highest priority)
@@ -241,20 +267,52 @@ DocuLens/
 
 ## 📡 API Endpoints
 
+### Authentication
+- `POST /api/auth/register` - Create account
+- `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/me` - Get current user
+
+### Organizations
+- `GET /api/organizations` - List user's organizations
+- `POST /api/organizations` - Create organization
+- `POST /api/organizations/{id}/members` - Add member by email
+
 ### Projects
 - `GET /api/sdlc-projects` - List SDLC projects
 - `POST /api/sdlc-projects` - Create project
 - `POST /api/sdlc-projects/{id}/repositories` - Add repository
+- `POST /api/sdlc-projects/{id}/members` - Add project member
 
 ### Documents
 - `GET /api/documents` - List documents
 - `POST /api/documents` - Create document
 - `GET /api/documents/{id}` - Get document with sections
+- `GET /api/documents/{id}/versions` - List version history
+- `POST /api/documents/{id}/versions` - Create version snapshot
+- `POST /api/documents/{id}/submit-review` - Submit for review
+- `POST /api/documents/{id}/review` - Submit review decision
 
 ### Generation
 - `POST /api/generation/documents/{id}/generate` - Generate all sections
-- `POST /api/generation/documents/{id}/sections/{section_id}/generate` - Regenerate section with custom prompt
+- `POST /api/generation/documents/{id}/sections/{section_id}/generate` - Regenerate section
 - `GET /api/generation/documents/{id}/export?format=markdown|docx|pdf` - Export
+
+### Connectors
+- `GET /api/connectors/organization/{id}` - List connectors
+- `POST /api/connectors/{id}/test` - Test connection
+- `GET /api/connectors/{id}/jira/projects` - List Jira projects
+- `POST /api/connectors/{id}/import/{doc_id}` - Import content
+
+### STTM (Source-to-Target Mapping)
+- `GET /api/documents/{id}/sttm` - List mappings
+- `POST /api/documents/{id}/sttm/bulk` - Bulk create mappings
+- `GET /api/documents/{id}/sttm/export` - Export to CSV
+- `POST /api/documents/{id}/sttm/generate-doc` - Generate narrative
+
+### Files
+- `GET /api/projects/{id}/files/tree` - File tree structure
+- `POST /api/projects/{id}/files/analyze` - Analyze file
+- `POST /api/documents/file-level` - Create file-level document
 
 ### Libraries
 - `GET /api/templates/library/with-sections` - List all templates with their sections

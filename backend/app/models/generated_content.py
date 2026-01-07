@@ -19,6 +19,8 @@ class GeneratedContent(Base):
     version = Column(Integer, default=1)
     is_ai_generated = Column(Boolean, default=True)
     generated_at = Column(DateTime, default=datetime.utcnow)
+    modified_by = Column(GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    modified_at = Column(DateTime, nullable=True)
 
     # Relationships
     document_section = relationship("DocumentSection", back_populates="generated_content")

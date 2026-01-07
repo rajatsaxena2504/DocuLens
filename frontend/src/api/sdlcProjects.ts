@@ -9,6 +9,9 @@ import type {
   AddRepositoryRequest,
   UpdateRepositoryRequest,
   Document,
+  ProjectMember,
+  AddProjectMemberRequest,
+  UpdateProjectMemberRequest,
 } from '@/types'
 
 export const sdlcProjectsApi = {
@@ -26,8 +29,9 @@ export const sdlcProjectsApi = {
 
   // ============ Projects ============
 
-  list: async (): Promise<SDLCProject[]> => {
-    const response = await client.get<SDLCProject[]>('/sdlc-projects')
+  list: async (organizationId?: string): Promise<SDLCProject[]> => {
+    const params = organizationId ? { organization_id: organizationId } : {}
+    const response = await client.get<SDLCProject[]>('/sdlc-projects', { params })
     return response.data
   },
 
@@ -85,5 +89,41 @@ export const sdlcProjectsApi = {
       `/sdlc-projects/${projectId}/stages/${stageId}/documents`
     )
     return response.data
+  },
+
+  // ============ Project Members ============
+
+  listMembers: async (projectId: string): Promise<ProjectMember[]> => {
+    const response = await client.get<ProjectMember[]>(
+      `/sdlc-projects/${projectId}/members`
+    )
+    return response.data
+  },
+
+  addMember: async (
+    projectId: string,
+    data: AddProjectMemberRequest
+  ): Promise<ProjectMember> => {
+    const response = await client.post<ProjectMember>(
+      `/sdlc-projects/${projectId}/members`,
+      data
+    )
+    return response.data
+  },
+
+  updateMember: async (
+    projectId: string,
+    memberId: string,
+    data: UpdateProjectMemberRequest
+  ): Promise<ProjectMember> => {
+    const response = await client.patch<ProjectMember>(
+      `/sdlc-projects/${projectId}/members/${memberId}`,
+      data
+    )
+    return response.data
+  },
+
+  removeMember: async (projectId: string, memberId: string): Promise<void> => {
+    await client.delete(`/sdlc-projects/${projectId}/members/${memberId}`)
   },
 }

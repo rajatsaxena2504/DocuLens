@@ -53,6 +53,7 @@ class RepositoryResponse(BaseModel):
 class SDLCProjectCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    organization_id: Optional[UUID] = None  # If set, project belongs to org
 
 
 class SDLCProjectUpdate(BaseModel):
@@ -66,6 +67,7 @@ class SDLCProjectResponse(BaseModel):
     name: str
     description: Optional[str]
     status: str
+    organization_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
 
@@ -98,3 +100,34 @@ class StageWithDocuments(SDLCStageResponse):
     """Stage with its documents for a given project"""
     documents: List[Any] = []  # Will be DocumentResponse, avoiding circular import
     document_count: int = 0
+
+
+# ============ Project Member Schemas ============
+
+class ProjectMemberCreate(BaseModel):
+    """Add a member to a project by email"""
+    email: str
+    role: str = "editor"  # 'owner', 'editor', 'viewer'
+
+
+class ProjectMemberUpdate(BaseModel):
+    """Update a member's role"""
+    role: str  # 'owner', 'editor', 'viewer'
+
+
+class ProjectMemberResponse(BaseModel):
+    """Response for a project member"""
+    id: UUID
+    sdlc_project_id: UUID
+    user_id: UUID
+    role: str
+    added_at: datetime
+    user: Optional[dict] = None  # User info: {id, email, name}
+
+    class Config:
+        from_attributes = True
+
+
+class SDLCProjectWithMembers(SDLCProjectWithRepositories):
+    """Project with its members"""
+    members: List[ProjectMemberResponse] = []

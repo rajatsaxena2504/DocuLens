@@ -15,10 +15,12 @@ class Section(Base):
     default_order = Column(Integer)
     applicable_doc_types = Column(GUIDArray())  # Array of document_type IDs
     is_system = Column(Boolean, default=True)
-    user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
+    organization_id = Column(GUID(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)  # Creator
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
+    organization = relationship("Organization", back_populates="sections")
     user = relationship("User", back_populates="custom_sections")
     document_type_mappings = relationship(
         "DocumentTypeSection",

@@ -18,6 +18,7 @@ import {
 import { cn } from '@/utils/helpers'
 import ProjectSidebar from '@/components/project/ProjectSidebar'
 import Breadcrumb from '@/components/common/Breadcrumb'
+import OrgSwitcher from '@/components/common/OrgSwitcher'
 
 interface LayoutProps {
   children: ReactNode
@@ -89,6 +90,11 @@ export default function Layout({ children }: LayoutProps) {
             >
               <X className="h-4 w-4" />
             </button>
+          </div>
+
+          {/* Organization Switcher */}
+          <div className="px-2 py-2 border-b border-slate-100">
+            <OrgSwitcher />
           </div>
 
           {/* Conditional sidebar content */}

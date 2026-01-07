@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from '@/context/AuthContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { SessionProvider } from '@/context/SessionContext'
 import { ProjectProvider } from '@/context/ProjectContext'
+import { OrganizationProvider } from '@/context/OrganizationContext'
+import { PageLoading } from '@/components/common/Loading'
 
 // Pages - DocuLens SDLC Documentation
 import WelcomePage from '@/pages/WelcomePage'
@@ -17,9 +19,12 @@ import DocumentEditorPage from '@/pages/DocumentEditorPage'
 import GenerationProgressPage from '@/pages/GenerationProgressPage'
 import TemplateLibraryPage from '@/pages/TemplateLibraryPage'
 import SectionLibraryPage from '@/pages/SectionLibraryPage'
+import LoginPage from '@/pages/LoginPage'
+import RegisterPage from '@/pages/RegisterPage'
+import OrganizationsPage from '@/pages/OrganizationsPage'
+import CreateOrganizationPage from '@/pages/CreateOrganizationPage'
+import OrganizationSettingsPage from '@/pages/OrganizationSettingsPage'
 
-// AUTH DISABLED: ProtectedRoute wrapper commented out
-/*
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
 
@@ -47,39 +52,45 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>
 }
-*/
 
 function AppRoutes() {
   return (
     <Routes>
-      {/* Main entry point - Welcome page */}
-      <Route path="/" element={<WelcomePage />} />
+      {/* Auth routes - Public only */}
+      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+
+      {/* Main entry point - Welcome page (protected) */}
+      <Route path="/" element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
+
+      {/* Organizations */}
+      <Route path="/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
+      <Route path="/organizations/new" element={<ProtectedRoute><CreateOrganizationPage /></ProtectedRoute>} />
+      <Route path="/organizations/:orgId/settings" element={<ProtectedRoute><OrganizationSettingsPage /></ProtectedRoute>} />
 
       {/* SDLC Projects */}
-      <Route path="/projects" element={<ProjectsPage />} />
-      <Route path="/projects/new" element={<NewProjectPage />} />
-      <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-      <Route path="/projects/:projectId/repositories/add" element={<AddRepositoryPage />} />
+      <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+      <Route path="/projects/new" element={<ProtectedRoute><NewProjectPage /></ProtectedRoute>} />
+      <Route path="/projects/:projectId" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
+      <Route path="/projects/:projectId/repositories/add" element={<ProtectedRoute><AddRepositoryPage /></ProtectedRoute>} />
 
       {/* SDLC Stages */}
-      <Route path="/projects/:projectId/stages/:stageId" element={<StageDetailPage />} />
-      <Route path="/projects/:projectId/stages/:stageId/documents/new" element={<NewDocumentPage />} />
+      <Route path="/projects/:projectId/stages/:stageId" element={<ProtectedRoute><StageDetailPage /></ProtectedRoute>} />
+      <Route path="/projects/:projectId/stages/:stageId/documents/new" element={<ProtectedRoute><NewDocumentPage /></ProtectedRoute>} />
 
       {/* Documents */}
-      <Route path="/projects/:projectId/documents/new" element={<NewDocumentPage />} />
-      <Route path="/documents" element={<DocumentsPage />} />
-      <Route path="/documents/new" element={<NewDocumentPage />} />
-      <Route path="/documents/:documentId/review" element={<SectionReviewPage />} />
-      <Route path="/documents/:documentId/edit" element={<DocumentEditorPage />} />
-      <Route path="/documents/:documentId/generating" element={<GenerationProgressPage />} />
+      <Route path="/projects/:projectId/documents/new" element={<ProtectedRoute><NewDocumentPage /></ProtectedRoute>} />
+      <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+      <Route path="/documents/new" element={<ProtectedRoute><NewDocumentPage /></ProtectedRoute>} />
+      <Route path="/documents/:documentId/review" element={<ProtectedRoute><SectionReviewPage /></ProtectedRoute>} />
+      <Route path="/documents/:documentId/edit" element={<ProtectedRoute><DocumentEditorPage /></ProtectedRoute>} />
+      <Route path="/documents/:documentId/generating" element={<ProtectedRoute><GenerationProgressPage /></ProtectedRoute>} />
 
       {/* Library */}
-      <Route path="/library/templates" element={<TemplateLibraryPage />} />
-      <Route path="/library/sections" element={<SectionLibraryPage />} />
+      <Route path="/library/templates" element={<ProtectedRoute><TemplateLibraryPage /></ProtectedRoute>} />
+      <Route path="/library/sections" element={<ProtectedRoute><SectionLibraryPage /></ProtectedRoute>} />
 
       {/* Redirects for old routes */}
-      <Route path="/login" element={<Navigate to="/" replace />} />
-      <Route path="/register" element={<Navigate to="/" replace />} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
       {/* Catch all */}
@@ -91,11 +102,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <ProjectProvider>
-        <SessionProvider>
-          <AppRoutes />
-        </SessionProvider>
-      </ProjectProvider>
+      <OrganizationProvider>
+        <ProjectProvider>
+          <SessionProvider>
+            <AppRoutes />
+          </SessionProvider>
+        </ProjectProvider>
+      </OrganizationProvider>
     </AuthProvider>
   )
 }

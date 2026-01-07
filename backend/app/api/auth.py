@@ -1,11 +1,4 @@
-"""
-AUTH DISABLED TEMPORARILY
-=========================
-Authentication is bypassed at the frontend level and in deps.py.
-These routes are kept functional for when auth is re-enabled.
-The get_current_user dependency in deps.py returns a mock user.
-"""
-from datetime import timedelta
+from datetime import timedelta, datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -56,6 +49,16 @@ def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated",
+        )
+
+    # Update last login time
+    user.last_login = datetime.utcnow()
+    db.commit()
 
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(

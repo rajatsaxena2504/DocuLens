@@ -29,6 +29,17 @@ class Document(Base):
     )
     title = Column(String(500), nullable=False)
     status = Column(String(50), default="draft")  # draft, sections_approved, generating, completed
+    current_version = Column(Integer, default=1)
+    # File-level documentation fields
+    file_path = Column(String(500), nullable=True)
+    is_file_level = Column(Boolean, default=False)
+    file_type = Column(String(20), nullable=True)  # python, sql, ipynb, js, ts
+    file_analysis = Column(Text, nullable=True)  # JSON analysis data
+    # Review workflow fields
+    review_status = Column(String(30), default="draft")  # draft, pending_review, changes_requested, approved
+    assigned_reviewer_id = Column(GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    submitted_at = Column(DateTime, nullable=True)
+    approved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -43,6 +54,30 @@ class Document(Base):
         back_populates="document",
         cascade="all, delete-orphan",
         order_by="DocumentSection.display_order",
+    )
+    versions = relationship(
+        "DocumentVersion",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        order_by="DocumentVersion.version_number.desc()",
+    )
+    reviews = relationship(
+        "DocumentReview",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        order_by="DocumentReview.reviewed_at.desc()",
+    )
+    assigned_reviewer = relationship("User", foreign_keys=[assigned_reviewer_id])
+    imports = relationship(
+        "ConnectorImport",
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
+    sttm_mappings = relationship(
+        "STTMMapping",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        order_by="STTMMapping.display_order",
     )
 
 

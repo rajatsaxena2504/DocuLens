@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.models import User, Document, DocumentSection, Project, GeneratedContent, SDLCProject
+from app.models import User, Document, DocumentSection, Project, GeneratedContent, SDLCProject, DocumentVersion, DocumentReview, ReviewComment
 from app.schemas import (
     DocumentCreate,
     DocumentUpdate,
@@ -13,8 +13,22 @@ from app.schemas import (
     DocumentSectionUpdate,
     DocumentSectionResponse,
     SectionReorderRequest,
+    DocumentVersionCreate,
+    DocumentVersionResponse,
+    DocumentVersionDetail,
+    DocumentVersionList,
+    VersionComparisonRequest,
+    VersionComparisonResponse,
+    RestoreVersionRequest,
+    SubmitForReviewRequest,
+    AssignReviewerRequest,
+    SubmitReviewRequest,
+    ReviewStatusResponse,
+    DocumentReviewResponse,
+    DocumentReviewSummary,
 )
 from app.services.section_suggester import SectionSuggester
+from datetime import datetime
 
 router = APIRouter()
 
@@ -567,3 +581,791 @@ def update_section_content(
     db.commit()
 
     return get_section_response(section)
+
+
+# ============ Version Management Endpoints ============
+
+
+def _create_document_snapshot(document: Document) -> dict:
+    """Create a snapshot of the document's current state."""
+    sections_snapshot = []
+    for section in document.sections:
+        latest_content = (
+            section.generated_content[0].content
+            if section.generated_content
+            else None
+        )
+        sections_snapshot.append({
+            'section_id': str(section.id),
+            'library_section_id': str(section.section_id) if section.section_id else None,
+            'custom_title': section.custom_title,
+            'custom_description': section.custom_description,
+            'display_order': section.display_order,
+            'is_included': section.is_included,
+            'title': section.title,
+            'description': section.description,
+            'content': latest_content,
+        })
+
+    return {
+        'title': document.title,
+        'status': document.status,
+        'document_type_id': str(document.document_type_id) if document.document_type_id else None,
+        'stage_id': str(document.stage_id) if document.stage_id else None,
+        'sections': sections_snapshot,
+    }
+
+
+@router.get("/{document_id}/versions", response_model=DocumentVersionList)
+def list_document_versions(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all versions of a document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    versions = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id
+    ).order_by(DocumentVersion.version_number.desc()).all()
+
+    version_responses = []
+    for v in versions:
+        creator_name = None
+        if v.creator:
+            creator_name = v.creator.name or v.creator.email
+        version_responses.append({
+            'id': v.id,
+            'document_id': v.document_id,
+            'version_number': v.version_number,
+            'change_summary': v.change_summary,
+            'created_by': v.created_by,
+            'created_at': v.created_at,
+            'creator_name': creator_name,
+        })
+
+    return {
+        'versions': version_responses,
+        'total': len(versions),
+        'current_version': document.current_version or 1,
+    }
+
+
+@router.post("/{document_id}/versions", response_model=DocumentVersionResponse, status_code=status.HTTP_201_CREATED)
+def create_document_version(
+    document_id: uuid.UUID,
+    version_data: DocumentVersionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a new version snapshot of the document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Get next version number
+    latest_version = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id
+    ).order_by(DocumentVersion.version_number.desc()).first()
+
+    next_version = (latest_version.version_number + 1) if latest_version else 1
+
+    # Create snapshot
+    snapshot = _create_document_snapshot(document)
+
+    version = DocumentVersion(
+        document_id=document_id,
+        version_number=next_version,
+        snapshot=snapshot,
+        change_summary=version_data.change_summary,
+        created_by=current_user.id,
+    )
+
+    db.add(version)
+
+    # Update document's current version
+    document.current_version = next_version
+
+    db.commit()
+    db.refresh(version)
+
+    creator_name = current_user.name or current_user.email
+
+    return {
+        'id': version.id,
+        'document_id': version.document_id,
+        'version_number': version.version_number,
+        'change_summary': version.change_summary,
+        'created_by': version.created_by,
+        'created_at': version.created_at,
+        'creator_name': creator_name,
+    }
+
+
+@router.get("/{document_id}/versions/{version_number}", response_model=DocumentVersionDetail)
+def get_document_version(
+    document_id: uuid.UUID,
+    version_number: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a specific version of a document with full snapshot."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    version = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id,
+        DocumentVersion.version_number == version_number,
+    ).first()
+
+    if not version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Version {version_number} not found",
+        )
+
+    creator_name = None
+    if version.creator:
+        creator_name = version.creator.name or version.creator.email
+
+    return {
+        'id': version.id,
+        'document_id': version.document_id,
+        'version_number': version.version_number,
+        'snapshot': version.snapshot,
+        'change_summary': version.change_summary,
+        'created_by': version.created_by,
+        'created_at': version.created_at,
+        'creator_name': creator_name,
+    }
+
+
+@router.post("/{document_id}/versions/compare", response_model=VersionComparisonResponse)
+def compare_versions(
+    document_id: uuid.UUID,
+    comparison: VersionComparisonRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Compare two versions of a document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Get both versions
+    from_version = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id,
+        DocumentVersion.version_number == comparison.from_version,
+    ).first()
+
+    to_version = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id,
+        DocumentVersion.version_number == comparison.to_version,
+    ).first()
+
+    if not from_version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Version {comparison.from_version} not found",
+        )
+
+    if not to_version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Version {comparison.to_version} not found",
+        )
+
+    # Build section maps for comparison
+    from_sections = {s['section_id']: s for s in from_version.snapshot.get('sections', [])}
+    to_sections = {s['section_id']: s for s in to_version.snapshot.get('sections', [])}
+
+    section_diffs = []
+    all_section_ids = set(from_sections.keys()) | set(to_sections.keys())
+
+    added_count = 0
+    removed_count = 0
+    modified_count = 0
+
+    for section_id in all_section_ids:
+        from_section = from_sections.get(section_id)
+        to_section = to_sections.get(section_id)
+
+        if from_section and to_section:
+            # Section exists in both - check for modifications
+            if from_section.get('content') != to_section.get('content'):
+                section_diffs.append({
+                    'section_id': uuid.UUID(section_id),
+                    'section_title': to_section.get('title', 'Untitled'),
+                    'change_type': 'modified',
+                    'old_content': from_section.get('content'),
+                    'new_content': to_section.get('content'),
+                })
+                modified_count += 1
+            else:
+                section_diffs.append({
+                    'section_id': uuid.UUID(section_id),
+                    'section_title': to_section.get('title', 'Untitled'),
+                    'change_type': 'unchanged',
+                    'old_content': from_section.get('content'),
+                    'new_content': to_section.get('content'),
+                })
+        elif from_section:
+            # Section was removed
+            section_diffs.append({
+                'section_id': uuid.UUID(section_id),
+                'section_title': from_section.get('title', 'Untitled'),
+                'change_type': 'removed',
+                'old_content': from_section.get('content'),
+                'new_content': None,
+            })
+            removed_count += 1
+        else:
+            # Section was added
+            section_diffs.append({
+                'section_id': uuid.UUID(section_id),
+                'section_title': to_section.get('title', 'Untitled'),
+                'change_type': 'added',
+                'old_content': None,
+                'new_content': to_section.get('content'),
+            })
+            added_count += 1
+
+    # Generate summary
+    summary_parts = []
+    if added_count:
+        summary_parts.append(f"{added_count} section(s) added")
+    if removed_count:
+        summary_parts.append(f"{removed_count} section(s) removed")
+    if modified_count:
+        summary_parts.append(f"{modified_count} section(s) modified")
+
+    summary = ", ".join(summary_parts) if summary_parts else "No changes"
+
+    return {
+        'document_id': document_id,
+        'from_version': comparison.from_version,
+        'to_version': comparison.to_version,
+        'from_timestamp': from_version.created_at,
+        'to_timestamp': to_version.created_at,
+        'section_diffs': section_diffs,
+        'summary': summary,
+    }
+
+
+@router.post("/{document_id}/versions/restore", response_model=DocumentVersionResponse)
+def restore_version(
+    document_id: uuid.UUID,
+    restore_data: RestoreVersionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Restore a document to a specific version (creates a new version)."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Get the version to restore
+    version_to_restore = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id,
+        DocumentVersion.version_number == restore_data.version_number,
+    ).first()
+
+    if not version_to_restore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Version {restore_data.version_number} not found",
+        )
+
+    snapshot = version_to_restore.snapshot
+
+    # Update document metadata
+    document.title = snapshot.get('title', document.title)
+    document.status = snapshot.get('status', document.status)
+
+    # Delete existing sections
+    db.query(DocumentSection).filter(
+        DocumentSection.document_id == document_id
+    ).delete()
+
+    # Recreate sections from snapshot
+    for section_data in snapshot.get('sections', []):
+        new_section = DocumentSection(
+            document_id=document_id,
+            section_id=uuid.UUID(section_data['library_section_id']) if section_data.get('library_section_id') else None,
+            custom_title=section_data.get('custom_title'),
+            custom_description=section_data.get('custom_description'),
+            display_order=section_data.get('display_order', 0),
+            is_included=section_data.get('is_included', True),
+        )
+        db.add(new_section)
+        db.flush()
+
+        # Restore content if present
+        if section_data.get('content'):
+            content = GeneratedContent(
+                document_section_id=new_section.id,
+                content=section_data['content'],
+                version=1,
+                is_ai_generated=False,
+                modified_by=current_user.id,
+                modified_at=datetime.utcnow(),
+            )
+            db.add(content)
+
+    # Create a new version to record the restore
+    latest_version = db.query(DocumentVersion).filter(
+        DocumentVersion.document_id == document_id
+    ).order_by(DocumentVersion.version_number.desc()).first()
+
+    next_version = (latest_version.version_number + 1) if latest_version else 1
+
+    change_summary = restore_data.change_summary or f"Restored to version {restore_data.version_number}"
+
+    new_version = DocumentVersion(
+        document_id=document_id,
+        version_number=next_version,
+        snapshot=snapshot,  # Same snapshot as restored version
+        change_summary=change_summary,
+        created_by=current_user.id,
+    )
+
+    db.add(new_version)
+    document.current_version = next_version
+
+    db.commit()
+    db.refresh(new_version)
+
+    creator_name = current_user.name or current_user.email
+
+    return {
+        'id': new_version.id,
+        'document_id': new_version.document_id,
+        'version_number': new_version.version_number,
+        'change_summary': new_version.change_summary,
+        'created_by': new_version.created_by,
+        'created_at': new_version.created_at,
+        'creator_name': creator_name,
+    }
+
+
+# ============ Review Workflow Endpoints ============
+
+
+def _get_reviewer_info(user: User) -> dict:
+    """Convert user to reviewer info dict."""
+    if not user:
+        return None
+    return {
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+    }
+
+
+def _get_review_summary(review: DocumentReview) -> dict:
+    """Convert review to summary dict."""
+    return {
+        'id': review.id,
+        'document_id': review.document_id,
+        'reviewer_id': review.reviewer_id,
+        'version_number': review.version_number,
+        'status': review.status,
+        'overall_comment': review.overall_comment,
+        'reviewed_at': review.reviewed_at,
+        'reviewer': _get_reviewer_info(review.reviewer) if review.reviewer else None,
+        'comment_count': len(review.comments),
+        'unresolved_count': sum(1 for c in review.comments if not c.is_resolved),
+    }
+
+
+@router.get("/{document_id}/review-status", response_model=ReviewStatusResponse)
+def get_review_status(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get the current review status of a document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Get latest review
+    latest_review = db.query(DocumentReview).filter(
+        DocumentReview.document_id == document_id
+    ).order_by(DocumentReview.reviewed_at.desc()).first()
+
+    # Count pending comments
+    pending_comments = 0
+    if latest_review:
+        pending_comments = sum(1 for c in latest_review.comments if not c.is_resolved)
+
+    total_reviews = db.query(DocumentReview).filter(
+        DocumentReview.document_id == document_id
+    ).count()
+
+    return {
+        'review_status': document.review_status or 'draft',
+        'assigned_reviewer': _get_reviewer_info(document.assigned_reviewer) if document.assigned_reviewer else None,
+        'submitted_at': document.submitted_at,
+        'approved_at': document.approved_at,
+        'latest_review': _get_review_summary(latest_review) if latest_review else None,
+        'total_reviews': total_reviews,
+        'pending_comments': pending_comments,
+    }
+
+
+@router.post("/{document_id}/submit-review")
+def submit_for_review(
+    document_id: uuid.UUID,
+    request: SubmitForReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Submit a document for review."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.review_status not in ['draft', 'changes_requested']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot submit document with status '{document.review_status}'",
+        )
+
+    # Assign reviewer if specified
+    if request.reviewer_id:
+        reviewer = db.query(User).filter(User.id == request.reviewer_id).first()
+        if not reviewer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reviewer not found",
+            )
+        document.assigned_reviewer_id = request.reviewer_id
+
+    document.review_status = 'pending_review'
+    document.submitted_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(document)
+
+    return {
+        'message': 'Document submitted for review',
+        'review_status': document.review_status,
+        'submitted_at': document.submitted_at,
+    }
+
+
+@router.post("/{document_id}/assign-reviewer")
+def assign_reviewer(
+    document_id: uuid.UUID,
+    request: AssignReviewerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Assign a reviewer to a document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    reviewer = db.query(User).filter(User.id == request.reviewer_id).first()
+    if not reviewer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reviewer not found",
+        )
+
+    document.assigned_reviewer_id = request.reviewer_id
+
+    db.commit()
+    db.refresh(document)
+
+    return {
+        'message': 'Reviewer assigned',
+        'assigned_reviewer': _get_reviewer_info(reviewer),
+    }
+
+
+@router.post("/{document_id}/review", response_model=DocumentReviewResponse)
+def submit_review(
+    document_id: uuid.UUID,
+    request: SubmitReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Submit a review for a document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.review_status != 'pending_review':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document is not pending review",
+        )
+
+    # Validate status
+    valid_statuses = ['approved', 'rejected', 'changes_requested']
+    if request.status not in valid_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid review status. Must be one of: {', '.join(valid_statuses)}",
+        )
+
+    # Create the review
+    review = DocumentReview(
+        document_id=document_id,
+        reviewer_id=current_user.id,
+        version_number=document.current_version,
+        status=request.status,
+        overall_comment=request.overall_comment,
+    )
+    db.add(review)
+    db.flush()
+
+    # Add comments if provided
+    if request.comments:
+        for comment_data in request.comments:
+            comment = ReviewComment(
+                review_id=review.id,
+                document_section_id=comment_data.document_section_id,
+                comment=comment_data.comment,
+                created_by=current_user.id,
+            )
+            db.add(comment)
+
+    # Update document status based on review decision
+    if request.status == 'approved':
+        document.review_status = 'approved'
+        document.approved_at = datetime.utcnow()
+    elif request.status == 'changes_requested':
+        document.review_status = 'changes_requested'
+    elif request.status == 'rejected':
+        document.review_status = 'draft'  # Reset to draft on rejection
+
+    db.commit()
+    db.refresh(review)
+
+    # Build response
+    comments_response = []
+    for c in review.comments:
+        section_title = None
+        if c.section:
+            section_title = c.section.title
+        comments_response.append({
+            'id': c.id,
+            'review_id': c.review_id,
+            'document_section_id': c.document_section_id,
+            'comment': c.comment,
+            'is_resolved': c.is_resolved,
+            'resolved_by': c.resolved_by,
+            'resolved_at': c.resolved_at,
+            'created_by': c.created_by,
+            'created_at': c.created_at,
+            'creator': _get_reviewer_info(c.creator) if c.creator else None,
+            'section_title': section_title,
+        })
+
+    return {
+        'id': review.id,
+        'document_id': review.document_id,
+        'reviewer_id': review.reviewer_id,
+        'version_number': review.version_number,
+        'status': review.status,
+        'overall_comment': review.overall_comment,
+        'reviewed_at': review.reviewed_at,
+        'reviewer': _get_reviewer_info(review.reviewer),
+        'comments': comments_response,
+    }
+
+
+@router.get("/{document_id}/reviews", response_model=List[DocumentReviewSummary])
+def list_reviews(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all reviews for a document."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    reviews = db.query(DocumentReview).filter(
+        DocumentReview.document_id == document_id
+    ).order_by(DocumentReview.reviewed_at.desc()).all()
+
+    return [_get_review_summary(r) for r in reviews]
+
+
+@router.get("/{document_id}/reviews/{review_id}", response_model=DocumentReviewResponse)
+def get_review(
+    document_id: uuid.UUID,
+    review_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a specific review with all comments."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    review = db.query(DocumentReview).filter(
+        DocumentReview.id == review_id,
+        DocumentReview.document_id == document_id,
+    ).first()
+
+    if not review:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Review not found",
+        )
+
+    comments_response = []
+    for c in review.comments:
+        section_title = None
+        if c.section:
+            section_title = c.section.title
+        comments_response.append({
+            'id': c.id,
+            'review_id': c.review_id,
+            'document_section_id': c.document_section_id,
+            'comment': c.comment,
+            'is_resolved': c.is_resolved,
+            'resolved_by': c.resolved_by,
+            'resolved_at': c.resolved_at,
+            'created_by': c.created_by,
+            'created_at': c.created_at,
+            'creator': _get_reviewer_info(c.creator) if c.creator else None,
+            'section_title': section_title,
+        })
+
+    return {
+        'id': review.id,
+        'document_id': review.document_id,
+        'reviewer_id': review.reviewer_id,
+        'version_number': review.version_number,
+        'status': review.status,
+        'overall_comment': review.overall_comment,
+        'reviewed_at': review.reviewed_at,
+        'reviewer': _get_reviewer_info(review.reviewer),
+        'comments': comments_response,
+    }
+
+
+@router.post("/{document_id}/reviews/{review_id}/comments/{comment_id}/resolve")
+def resolve_comment(
+    document_id: uuid.UUID,
+    review_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Resolve a review comment."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    comment = db.query(ReviewComment).join(DocumentReview).filter(
+        ReviewComment.id == comment_id,
+        DocumentReview.id == review_id,
+        DocumentReview.document_id == document_id,
+    ).first()
+
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+
+    comment.is_resolved = True
+    comment.resolved_by = current_user.id
+    comment.resolved_at = datetime.utcnow()
+
+    db.commit()
+
+    return {'message': 'Comment resolved'}

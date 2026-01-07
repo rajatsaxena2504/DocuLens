@@ -19,10 +19,18 @@ class UserResponse(BaseModel):
     id: UUID
     email: str
     name: Optional[str]
+    is_active: bool = True
+    email_verified: bool = False
+    last_login: Optional[datetime] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class UserWithOrganizations(UserResponse):
+    """User response with their organizations"""
+    organizations: list = []  # List of UserOrganization
 
 
 class Token(BaseModel):

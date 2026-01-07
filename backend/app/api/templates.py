@@ -1,9 +1,10 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.api.deps import get_db, get_current_user
-from app.models import User, DocumentType, DocumentTypeSection
+from app.models import User, DocumentType, DocumentTypeSection, OrganizationMember
 from app.schemas import (
     DocumentTypeCreate,
     DocumentTypeResponse,
@@ -14,16 +15,58 @@ from app.schemas import (
 router = APIRouter()
 
 
+def _get_user_org_admin_ids(db: Session, user_id: uuid.UUID) -> List[uuid.UUID]:
+    """Get organization IDs where user is an admin."""
+    memberships = db.query(OrganizationMember).filter(
+        OrganizationMember.user_id == user_id,
+        OrganizationMember.role == 'admin'
+    ).all()
+    return [m.organization_id for m in memberships]
+
+
+def _get_user_org_ids(db: Session, user_id: uuid.UUID) -> List[uuid.UUID]:
+    """Get all organization IDs user belongs to."""
+    memberships = db.query(OrganizationMember).filter(
+        OrganizationMember.user_id == user_id
+    ).all()
+    return [m.organization_id for m in memberships]
+
+
 @router.get("", response_model=List[DocumentTypeResponse])
 def list_templates(
     stage_id: uuid.UUID = None,
+    scope: Optional[str] = Query(None, description="Filter by scope: system, org, or all"),
+    organization_id: Optional[uuid.UUID] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all document types/templates, optionally filtered by stage."""
-    query = db.query(DocumentType).filter(
-        (DocumentType.is_system == True) | (DocumentType.user_id == current_user.id)
-    )
+    """List all document types/templates, optionally filtered by stage and scope."""
+    user_org_ids = _get_user_org_ids(db, current_user.id)
+
+    if scope == 'system':
+        # Only system templates
+        query = db.query(DocumentType).filter(DocumentType.is_system == True)
+    elif scope == 'org':
+        # Only organization templates
+        if organization_id:
+            query = db.query(DocumentType).filter(
+                DocumentType.organization_id == organization_id,
+                DocumentType.is_system == False
+            )
+        else:
+            query = db.query(DocumentType).filter(
+                DocumentType.organization_id.in_(user_org_ids),
+                DocumentType.is_system == False
+            )
+    else:
+        # All accessible templates
+        query = db.query(DocumentType).filter(
+            or_(
+                DocumentType.is_system == True,
+                DocumentType.user_id == current_user.id,
+                DocumentType.organization_id.in_(user_org_ids) if user_org_ids else False
+            )
+        )
 
     if stage_id:
         query = query.filter(DocumentType.stage_id == stage_id)
@@ -93,15 +136,35 @@ def list_templates_by_stage(
 @router.post("", response_model=DocumentTypeResponse, status_code=status.HTTP_201_CREATED)
 def create_template(
     template_data: DocumentTypeCreate,
+    organization_id: Optional[uuid.UUID] = None,
+    stage_id: Optional[uuid.UUID] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create a custom document type/template."""
+    """Create a custom document type/template.
+
+    If organization_id is provided and user is an admin, creates org-level template.
+    Otherwise creates personal template.
+    """
+    org_id = None
+    if organization_id:
+        # Check if user is admin of the organization
+        admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
+        if organization_id in admin_org_ids:
+            org_id = organization_id
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only organization admins can create org-level templates",
+            )
+
     template = DocumentType(
         name=template_data.name,
         description=template_data.description,
         is_system=False,
         user_id=current_user.id,
+        organization_id=org_id,
+        stage_id=stage_id,
     )
 
     db.add(template)
@@ -166,10 +229,16 @@ def delete_template(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a custom template."""
+    # Get user's admin orgs
+    admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
+
     template = db.query(DocumentType).filter(
         DocumentType.id == template_id,
-        DocumentType.user_id == current_user.id,
         DocumentType.is_system == False,
+        or_(
+            DocumentType.user_id == current_user.id,
+            DocumentType.organization_id.in_(admin_org_ids) if admin_org_ids else False
+        )
     ).first()
 
     if not template:
@@ -180,3 +249,80 @@ def delete_template(
 
     db.delete(template)
     db.commit()
+
+
+@router.post("/{template_id}/set-default")
+def set_template_default(
+    template_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Set a template as organization default (admin only)."""
+    admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
+
+    if not admin_org_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization admins can set default templates",
+        )
+
+    template = db.query(DocumentType).filter(
+        DocumentType.id == template_id,
+        or_(
+            DocumentType.is_system == True,
+            DocumentType.organization_id.in_(admin_org_ids)
+        )
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found",
+        )
+
+    # Toggle the default status
+    template.is_org_default = not template.is_org_default
+    db.commit()
+
+    return {
+        'id': str(template.id),
+        'is_org_default': template.is_org_default,
+        'message': 'Template default status updated'
+    }
+
+
+@router.put("/{template_id}")
+def update_template(
+    template_id: uuid.UUID,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update an organization template (admin only)."""
+    admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
+
+    template = db.query(DocumentType).filter(
+        DocumentType.id == template_id,
+        DocumentType.is_system == False,
+        or_(
+            DocumentType.user_id == current_user.id,
+            DocumentType.organization_id.in_(admin_org_ids) if admin_org_ids else False
+        )
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found or cannot be updated",
+        )
+
+    if name is not None:
+        template.name = name
+    if description is not None:
+        template.description = description
+
+    db.commit()
+    db.refresh(template)
+
+    return template

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   Plus,
@@ -17,6 +17,8 @@ import {
 import Layout from '@/components/common/Layout'
 import { PageLoading } from '@/components/common/Loading'
 import Button from '@/components/common/Button'
+import ProjectMembersPanel from '@/components/project/ProjectMembersPanel'
+import AddMemberModal from '@/components/project/AddMemberModal'
 import { useSDLCProject, useSDLCStages } from '@/hooks/useSDLCProjects'
 import { useProjectContext } from '@/context/ProjectContext'
 import { generationApi } from '@/api/sections'
@@ -47,6 +49,7 @@ const stageColors: Record<string, { bg: string; text: string; border: string; li
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const { setBreadcrumbItems, setCurrentProject } = useProjectContext()
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false)
 
   const { data: project, isLoading: projectLoading } = useSDLCProject(projectId || '')
   const { data: stages = [], isLoading: stagesLoading } = useSDLCStages()
@@ -87,7 +90,7 @@ export default function ProjectDetailPage() {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-start justify-between">
@@ -117,57 +120,78 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* Repositories */}
-        {project.repositories && project.repositories.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-slate-900 mb-3">Repositories</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {project.repositories.map((repo) => (
-                <RepositoryCard key={repo.id} repo={repo} />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Main Content with Sidebar */}
+        <div className="flex gap-6">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {/* Repositories */}
+            {project.repositories && project.repositories.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-sm font-semibold text-slate-900 mb-3">Repositories</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {project.repositories.map((repo) => (
+                    <RepositoryCard key={repo.id} repo={repo} />
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* SDLC Pipeline */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-900">SDLC Stages</h2>
-            <p className="text-xs text-slate-500">Select a stage to create documentation</p>
-          </div>
+            {/* SDLC Pipeline */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-slate-900">SDLC Stages</h2>
+                <p className="text-xs text-slate-500">Select a stage to create documentation</p>
+              </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedStages.map((stage) => (
-              <StageCard
-                key={stage.id}
-                stage={stage}
-                projectId={project.id}
-                documentCount={project.stage_document_counts?.[stage.id] || 0}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Quick Start if no repos */}
-        {(!project.repositories || project.repositories.length === 0) && (
-          <div className="mt-6 p-6 bg-primary-50 border border-primary-100 rounded-lg text-center">
-            <div className="flex justify-center mb-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white shadow-sm">
-                <FolderGit2 className="h-6 w-6 text-primary-600" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {sortedStages.map((stage) => (
+                  <StageCard
+                    key={stage.id}
+                    stage={stage}
+                    projectId={project.id}
+                    documentCount={project.stage_document_counts?.[stage.id] || 0}
+                  />
+                ))}
               </div>
             </div>
-            <h3 className="text-base font-semibold text-slate-900 mb-1">Get Started</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Add a repository to start generating documentation.
-            </p>
-            <Link to={`/projects/${project.id}/repositories/add`}>
-              <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
-                Add Repository
-              </Button>
-            </Link>
+
+            {/* Quick Start if no repos */}
+            {(!project.repositories || project.repositories.length === 0) && (
+              <div className="mt-6 p-6 bg-primary-50 border border-primary-100 rounded-lg text-center">
+                <div className="flex justify-center mb-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white shadow-sm">
+                    <FolderGit2 className="h-6 w-6 text-primary-600" />
+                  </div>
+                </div>
+                <h3 className="text-base font-semibold text-slate-900 mb-1">Get Started</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Add a repository to start generating documentation.
+                </p>
+                <Link to={`/projects/${project.id}/repositories/add`}>
+                  <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
+                    Add Repository
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Sidebar */}
+          <div className="w-64 flex-shrink-0 hidden lg:block">
+            <ProjectMembersPanel
+              projectId={project.id}
+              onAddMember={() => setShowAddMemberModal(true)}
+            />
+          </div>
+        </div>
       </div>
+
+      {/* Add Member Modal */}
+      <AddMemberModal
+        projectId={project.id}
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+      />
     </Layout>
   )
 }

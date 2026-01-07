@@ -10,7 +10,8 @@ class SDLCProject(Base):
     __tablename__ = "sdlc_projects"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    organization_id = Column(GUID(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)  # Legacy, nullable for org-based
     name = Column(String(255), nullable=False)
     description = Column(Text)
     status = Column(String(50), default="active")  # active, archived
@@ -18,6 +19,8 @@ class SDLCProject(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    organization = relationship("Organization", back_populates="projects")
     user = relationship("User", back_populates="sdlc_projects")
     repositories = relationship("Project", back_populates="sdlc_project", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="sdlc_project", cascade="all, delete-orphan")
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")

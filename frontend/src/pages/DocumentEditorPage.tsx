@@ -14,6 +14,7 @@ import {
   BookOpen,
   CheckCircle2,
   Wand2,
+  History,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Layout from '@/components/common/Layout'
@@ -24,6 +25,8 @@ import ExportOptions from '@/components/editor/ExportOptions'
 import AddSectionModal from '@/components/sections/AddSectionModal'
 import GenerationProgressBar from '@/components/editor/GenerationProgressBar'
 import SectionPromptEditor from '@/components/editor/SectionPromptEditor'
+import VersionPanel from '@/components/editor/VersionPanel'
+import VersionComparisonModal from '@/components/editor/VersionComparisonModal'
 import { PageLoading } from '@/components/common/Loading'
 import {
   useDocument,
@@ -88,6 +91,11 @@ export default function DocumentEditorPage() {
     error?: string
   }>>([])
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
+  const [showVersionPanel, setShowVersionPanel] = useState(false)
+  const [compareVersions, setCompareVersions] = useState<{
+    from: number
+    to: number
+  } | null>(null)
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
@@ -502,6 +510,15 @@ export default function DocumentEditorPage() {
                 {isGeneratingAll ? 'Generating...' : 'Generate All'}
               </Button>
               <ExportOptions documentId={document.id} documentTitle={document.title} />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowVersionPanel(!showVersionPanel)}
+                leftIcon={<History className="h-3.5 w-3.5" />}
+                className={showVersionPanel ? 'bg-slate-100' : ''}
+              >
+                Versions
+              </Button>
             </div>
           </div>
 
@@ -767,6 +784,25 @@ export default function DocumentEditorPage() {
         onAdd={handleAddSection}
         existingSectionIds={document.sections.map((s) => s.section_id || '').filter(Boolean)}
       />
+
+      {/* Version Panel */}
+      <VersionPanel
+        documentId={document.id}
+        isOpen={showVersionPanel}
+        onClose={() => setShowVersionPanel(false)}
+        onCompare={(from, to) => setCompareVersions({ from, to })}
+      />
+
+      {/* Version Comparison Modal */}
+      {compareVersions && (
+        <VersionComparisonModal
+          documentId={document.id}
+          fromVersion={compareVersions.from}
+          toVersion={compareVersions.to}
+          isOpen={true}
+          onClose={() => setCompareVersions(null)}
+        />
+      )}
 
     </Layout>
   )

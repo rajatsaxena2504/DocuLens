@@ -13,11 +13,14 @@ class DocumentType(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text)
     is_system = Column(Boolean, default=True)
-    user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
+    organization_id = Column(GUID(), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)  # Creator
     stage_id = Column(GUID(), ForeignKey("sdlc_stages.id"), nullable=True)
+    is_org_default = Column(Boolean, default=False)  # Admin can mark as org default
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
+    organization = relationship("Organization", back_populates="document_types")
     user = relationship("User", back_populates="custom_document_types")
     stage = relationship("SDLCStage", back_populates="document_types")
     documents = relationship("Document", back_populates="document_type")

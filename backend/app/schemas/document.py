@@ -53,6 +53,7 @@ class DocumentResponse(BaseModel):
     stage_id: Optional[UUID] = None
     title: str
     status: str
+    current_version: int = 1
     created_at: datetime
     updated_at: datetime
 
