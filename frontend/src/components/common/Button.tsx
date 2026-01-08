@@ -39,20 +39,20 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary: cn(
-        'bg-primary-600 text-white shadow-sm',
-        'hover:bg-primary-700 hover:shadow-md hover:-translate-y-px',
-        'active:bg-primary-800 active:shadow-sm'
+        'bg-primary-600 text-white',
+        'hover:bg-primary-700',
+        'active:bg-primary-800'
       ),
       secondary: cn(
-        'bg-white text-slate-700 shadow-sm',
+        'bg-white text-slate-700',
         'border border-slate-200',
-        'hover:bg-slate-50 hover:border-slate-300 hover:shadow-md hover:-translate-y-px',
-        'active:bg-slate-100 active:shadow-sm'
+        'hover:bg-slate-50 hover:border-slate-300',
+        'active:bg-slate-100'
       ),
       outline: cn(
         'bg-transparent text-primary-600',
         'border border-primary-200',
-        'hover:bg-primary-50 hover:border-primary-300 hover:-translate-y-px',
+        'hover:bg-primary-50 hover:border-primary-300',
         'active:bg-primary-100'
       ),
       ghost: cn(
@@ -61,9 +61,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'active:bg-slate-200'
       ),
       danger: cn(
-        'bg-error-600 text-white shadow-sm',
-        'hover:bg-error-700 hover:shadow-md hover:-translate-y-px',
-        'active:bg-error-800 active:shadow-sm'
+        'bg-error-600 text-white',
+        'hover:bg-error-700',
+        'active:bg-error-800'
       ),
     }
 

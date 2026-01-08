@@ -76,25 +76,25 @@ export default function ProfilePage() {
           </div>
 
           {/* Profile Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             {/* Avatar Section */}
-            <div className="bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 px-8 py-10">
-              <div className="flex items-center gap-5">
-                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                  <User className="w-10 h-10 text-white" />
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-8">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <User className="w-8 h-8 text-white" />
                 </div>
                 <div className="text-white">
-                  <h2 className="text-2xl font-bold">{user?.name || 'User'}</h2>
-                  <p className="text-white/80 mt-1">{user?.email}</p>
+                  <h2 className="text-xl font-bold">{user?.name || 'User'}</h2>
+                  <p className="text-white/80 text-sm mt-0.5">{user?.email}</p>
                 </div>
               </div>
             </div>
 
             {/* Profile Details */}
-            <div className="p-8 space-y-8">
+            <div className="p-6 space-y-6">
               {/* Basic Info */}
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-5">Basic Information</h3>
+                <h3 className="text-base font-semibold text-slate-900 mb-4">Basic Information</h3>
                 <div className="space-y-3">
                   {isEditing ? (
                     <Input
@@ -104,34 +104,34 @@ export default function ProfilePage() {
                       leftIcon={<User className="w-4 h-4" />}
                     />
                   ) : (
-                    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl transition-colors hover:bg-slate-100/80">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-200/60">
+                    <div className="info-row-hover">
+                      <div className="info-row-icon">
                         <User className="w-5 h-5 text-slate-500" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Display Name</p>
-                        <p className="font-medium text-slate-900 mt-0.5">{user?.name || 'Not set'}</p>
+                        <p className="info-row-label">Display Name</p>
+                        <p className="info-row-value">{user?.name || 'Not set'}</p>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl transition-colors hover:bg-slate-100/80">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-200/60">
+                  <div className="info-row-hover">
+                    <div className="info-row-icon">
                       <Mail className="w-5 h-5 text-slate-500" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Email Address</p>
-                      <p className="font-medium text-slate-900 mt-0.5">{user?.email}</p>
+                      <p className="info-row-label">Email Address</p>
+                      <p className="info-row-value">{user?.email}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl transition-colors hover:bg-slate-100/80">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-200/60">
+                  <div className="info-row-hover">
+                    <div className="info-row-icon">
                       <Calendar className="w-5 h-5 text-slate-500" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Member Since</p>
-                      <p className="font-medium text-slate-900 mt-0.5">
+                      <p className="info-row-label">Member Since</p>
+                      <p className="info-row-value">
                         {user?.created_at
                           ? new Date(user.created_at).toLocaleDateString('en-US', {
                               year: 'numeric',
@@ -143,13 +143,13 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl transition-colors hover:bg-slate-100/80">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-100">
+                  <div className="info-row-hover">
+                    <div className="info-row-icon bg-success-100">
                       <Shield className="w-5 h-5 text-success-600" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Account Status</p>
-                      <p className="font-medium text-success-600 mt-0.5 flex items-center gap-1.5">
+                      <p className="info-row-label">Account Status</p>
+                      <p className="info-row-value text-success-600 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-success-500" />
                         Active
                       </p>
@@ -158,12 +158,12 @@ export default function ProfilePage() {
 
                   {/* System Role */}
                   {isSuperadmin && (
-                    <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-200/60">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                        <Crown className="w-5 h-5 text-amber-600" />
+                    <div className="info-row bg-warning-50 border border-warning-200/60">
+                      <div className="info-row-icon bg-warning-100">
+                        <Crown className="w-5 h-5 text-warning-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">System Role</p>
+                        <p className="info-row-label">System Role</p>
                         <div className="mt-1">
                           <SuperadminBadge />
                         </div>
@@ -172,18 +172,18 @@ export default function ProfilePage() {
                   )}
 
                   {/* Current Organization Role */}
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl transition-colors hover:bg-slate-100/80">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100">
+                  <div className="info-row-hover">
+                    <div className="info-row-icon bg-primary-100">
                       <Building2 className="w-5 h-5 text-primary-600" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Organization</p>
+                      <p className="info-row-label">Organization</p>
                       {currentOrg ? (
                         <>
-                          <p className="font-medium text-slate-900 mt-0.5">{currentOrg.name}</p>
+                          <p className="info-row-value">{currentOrg.name}</p>
                           <div className="mt-1.5">
                             {isSuperadmin ? (
-                              <span className="text-xs text-amber-600 font-medium">Full access (Superadmin)</span>
+                              <span className="text-xs text-warning-600 font-medium">Full access (Superadmin)</span>
                             ) : currentRoles.length > 0 ? (
                               <RoleBadges roles={currentRoles} maxDisplay={4} />
                             ) : (
@@ -203,7 +203,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-5 flex gap-2">
                   {isEditing ? (
                     <>
                       <Button onClick={handleSaveProfile} isLoading={isSaving}>
@@ -223,8 +223,8 @@ export default function ProfilePage() {
               </div>
 
               {/* Password Section */}
-              <div className="border-t border-slate-100 pt-8">
-                <h3 className="text-lg font-semibold text-slate-900 mb-5">Security</h3>
+              <div className="border-t border-slate-100 pt-6">
+                <h3 className="text-base font-semibold text-slate-900 mb-4">Security</h3>
 
                 {showPasswordForm ? (
                   <form onSubmit={handleChangePassword} className="space-y-4">

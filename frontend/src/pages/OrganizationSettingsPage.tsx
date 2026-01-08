@@ -404,9 +404,9 @@ export default function OrganizationSettingsPage() {
           <div className="space-y-6">
             <form
               onSubmit={handleSaveGeneral}
-              className="bg-white rounded-lg border border-slate-200 p-6"
+              className="section-card"
             >
-              <h3 className="font-semibold text-slate-900 mb-4">Organization Details</h3>
+              <h3 className="text-base font-semibold text-slate-900 mb-4">Organization Details</h3>
               <div className="space-y-4">
                 <Input
                   id="name"
@@ -433,8 +433,8 @@ export default function OrganizationSettingsPage() {
             </form>
 
             {/* Danger Zone */}
-            <div className="bg-white rounded-lg border border-red-200 p-6">
-              <h3 className="font-semibold text-red-700 mb-2">Danger Zone</h3>
+            <div className="bg-white rounded-xl border border-error-200 p-6">
+              <h3 className="text-base font-semibold text-error-700 mb-2">Danger Zone</h3>
               <p className="text-sm text-slate-500 mb-4">
                 Deleting an organization will remove all associated projects and documents.
                 This action cannot be undone.
@@ -465,7 +465,7 @@ export default function OrganizationSettingsPage() {
             {/* Members List */}
             <div className="space-y-3">
               {members.length === 0 ? (
-                <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+                <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                   <Users className="h-12 w-12 mx-auto text-slate-300 mb-4" />
                   <h3 className="text-lg font-medium text-slate-900 mb-2">No members yet</h3>
                   <p className="text-slate-500 mb-4">Add team members to collaborate on this organization</p>
@@ -478,7 +478,7 @@ export default function OrganizationSettingsPage() {
                 members.map((member) => (
                   <div
                     key={member.id}
-                    className="bg-white rounded-lg border border-slate-200 p-4 flex items-center justify-between hover:border-slate-300 transition-colors"
+                    className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between hover:border-slate-300 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
@@ -516,7 +516,7 @@ export default function OrganizationSettingsPage() {
             </div>
 
             {/* Role Descriptions */}
-            <div className="bg-slate-50 rounded-lg p-4">
+            <div className="bg-slate-50 rounded-xl p-4">
               <h4 className="text-sm font-medium text-slate-700 mb-3">Role Permissions</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div className="flex items-start gap-2">
@@ -557,7 +557,7 @@ export default function OrganizationSettingsPage() {
             </div>
 
             {requests.length === 0 ? (
-              <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                 <Clock className="h-12 w-12 mx-auto text-slate-300 mb-4" />
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No pending requests</h3>
                 <p className="text-slate-500">
@@ -569,7 +569,7 @@ export default function OrganizationSettingsPage() {
                 {requests.map((request) => (
                   <div
                     key={request.id}
-                    className="bg-white rounded-lg border border-slate-200 p-4 flex items-center justify-between hover:border-slate-300 transition-colors"
+                    className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between hover:border-slate-300 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
@@ -608,7 +608,7 @@ export default function OrganizationSettingsPage() {
               </div>
             )}
 
-            <div className="bg-slate-50 rounded-lg p-4">
+            <div className="bg-slate-50 rounded-xl p-4">
               <h4 className="text-sm font-medium text-slate-700 mb-2">About Membership Requests</h4>
               <p className="text-sm text-slate-500">
                 When you approve a request, the user will be added to this organization with the <strong>Viewer</strong> role.

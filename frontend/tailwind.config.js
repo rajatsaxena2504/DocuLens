@@ -20,7 +20,7 @@ export default {
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
       },
       colors: {
-        // Primary - Warm Coral/Rose
+        // Primary - Warm Coral/Rose (Brand Color)
         primary: {
           50: '#fff1f2',
           100: '#ffe4e6',
@@ -46,7 +46,7 @@ export default {
           800: '#9a3412',
           900: '#7c2d12',
         },
-        // Success - Same as accent for consistency
+        // Success - Emerald
         success: {
           50: '#ecfdf5',
           100: '#d1fae5',
@@ -101,22 +101,27 @@ export default {
         },
       },
       backgroundColor: {
-        'page': '#f9f8f6', // Warm cream background like ConceptHub
+        'page': '#fafaf9', // Warm stone-50 background
       },
       boxShadow: {
         'xs': '0 1px 2px rgba(0, 0, 0, 0.04)',
-        'sm': '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
+        'sm': '0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)',
+        'DEFAULT': '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)',
         'md': '0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
         'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04)',
         'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03)',
         'inner': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.04)',
+        'card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+        'card-hover': '0 8px 16px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03)',
         'none': 'none',
       },
       borderRadius: {
-        'sm': '0.375rem',
-        'DEFAULT': '0.5rem',
-        'lg': '0.75rem',
-        'xl': '1rem',
+        'sm': '0.375rem',   // 6px
+        'DEFAULT': '0.5rem', // 8px
+        'md': '0.5rem',      // 8px
+        'lg': '0.625rem',    // 10px
+        'xl': '0.75rem',     // 12px
+        '2xl': '1rem',       // 16px
       },
       spacing: {
         '18': '4.5rem',
@@ -127,7 +132,7 @@ export default {
         'slide-up': 'slideUp 0.3s ease-out',
         'slide-down': 'slideDown 0.2s ease-out',
         'scale-in': 'scaleIn 0.15s ease-out',
-        'modal-in': 'modalIn 0.3s ease-out',
+        'modal-in': 'modalIn 0.25s ease-out',
         'backdrop-in': 'backdropIn 0.2s ease-out',
       },
       keyframes: {
@@ -148,7 +153,7 @@ export default {
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
         modalIn: {
-          '0%': { opacity: '0', transform: 'translateY(16px) scale(0.98)' },
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.98)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
         backdropIn: {
@@ -160,7 +165,7 @@ export default {
         DEFAULT: {
           css: {
             maxWidth: 'none',
-            color: '#334155',
+            color: '#475569',
             h1: {
               color: '#0f172a',
               fontWeight: '700',

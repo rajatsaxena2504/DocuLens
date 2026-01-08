@@ -90,14 +90,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Appearance */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-primary-100 rounded-lg">
+          <div className="section-card">
+            <div className="section-header">
+              <div className="section-icon bg-primary-100">
                 <Palette className="w-5 h-5 text-primary-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Appearance</h2>
-                <p className="text-sm text-slate-500">Customize how DocuLens looks</p>
+                <h2 className="section-title">Appearance</h2>
+                <p className="section-description">Customize how DocuLens looks</p>
               </div>
             </div>
 
@@ -143,14 +143,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Notifications */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Bell className="w-5 h-5 text-amber-600" />
+          <div className="section-card">
+            <div className="section-header">
+              <div className="section-icon bg-warning-100">
+                <Bell className="w-5 h-5 text-warning-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
-                <p className="text-sm text-slate-500">Manage your notification preferences</p>
+                <h2 className="section-title">Notifications</h2>
+                <p className="section-description">Manage your notification preferences</p>
               </div>
             </div>
 
@@ -178,14 +178,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Editor */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Settings className="w-5 h-5 text-emerald-600" />
+          <div className="section-card">
+            <div className="section-header">
+              <div className="section-icon bg-success-100">
+                <Settings className="w-5 h-5 text-success-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Editor</h2>
-                <p className="text-sm text-slate-500">Configure the document editor</p>
+                <h2 className="section-title">Editor</h2>
+                <p className="section-description">Configure the document editor</p>
               </div>
             </div>
 
@@ -212,14 +212,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Data & Privacy */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Globe className="w-5 h-5 text-blue-600" />
+          <div className="section-card">
+            <div className="section-header">
+              <div className="section-icon bg-slate-100">
+                <Globe className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Data & Privacy</h2>
-                <p className="text-sm text-slate-500">Manage your data</p>
+                <h2 className="section-title">Data & Privacy</h2>
+                <p className="section-description">Manage your data</p>
               </div>
             </div>
 

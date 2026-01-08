@@ -275,20 +275,15 @@ function FeatureCard({ icon, title, description, color }: FeatureCardProps) {
   }
 
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card variant="elevated" className="h-full">
-        <div className={cn(
-          'mb-4 inline-flex rounded-xl p-3',
-          colorClasses[color]
-        )}>
-          {icon}
-        </div>
-        <h3 className="font-semibold text-slate-900 mb-1">{title}</h3>
-        <p className="text-sm text-slate-500">{description}</p>
-      </Card>
-    </motion.div>
+    <Card variant="elevated" className="h-full hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+      <div className={cn(
+        'mb-3 inline-flex rounded-lg p-2.5',
+        colorClasses[color]
+      )}>
+        {icon}
+      </div>
+      <h3 className="font-semibold text-slate-900 mb-1">{title}</h3>
+      <p className="text-sm text-slate-500">{description}</p>
+    </Card>
   )
 }

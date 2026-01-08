@@ -56,21 +56,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               'w-full rounded-lg border bg-white text-slate-900 text-sm',
               'placeholder:text-slate-400',
-              'transition-all duration-200 ease-out',
+              'transition-colors duration-150',
               'focus:outline-none',
-              'shadow-sm',
               // Sizes based on icons
               leftIcon ? 'pl-10' : 'pl-3.5',
               rightIcon || isPassword ? 'pr-10' : 'pr-3.5',
               'py-2.5',
               // States
               error
-                ? 'border-error-300 focus:border-error-500 focus:ring-2 focus:ring-error-500/20 focus:shadow-md'
+                ? 'border-error-300 focus:border-error-500 focus:ring-2 focus:ring-error-500/20'
                 : success
-                  ? 'border-success-300 focus:border-success-500 focus:ring-2 focus:ring-success-500/20 focus:shadow-md'
-                  : 'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:shadow-md',
+                  ? 'border-success-300 focus:border-success-500 focus:ring-2 focus:ring-success-500/20'
+                  : 'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
               // Disabled
-              disabled && 'opacity-50 cursor-not-allowed bg-slate-50 shadow-none',
+              disabled && 'opacity-50 cursor-not-allowed bg-slate-50',
               className
             )}
             {...props}

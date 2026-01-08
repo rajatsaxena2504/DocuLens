@@ -192,7 +192,7 @@ function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
   return (
     <Link to={`/projects/${project.id}`}>
-      <div className="group relative bg-white rounded-xl border border-slate-200/80 p-5 hover:border-primary-300 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
+      <div className="group relative bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 ease-out">
         {/* Status badge & menu */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
           {project.status === 'archived' && (
@@ -354,8 +354,8 @@ function EmptyState({ searchQuery, statusFilter }: EmptyStateProps) {
 
       {/* Features */}
       <div className="grid sm:grid-cols-3 gap-4 mt-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 mb-3">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 ease-out">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600 mb-3">
             <Code2 className="h-5 w-5" />
           </div>
           <h4 className="font-semibold text-slate-900 mb-1">Code Analysis</h4>
@@ -363,8 +363,8 @@ function EmptyState({ searchQuery, statusFilter }: EmptyStateProps) {
             Connect GitHub repositories for automatic code analysis
           </p>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600 mb-3">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 ease-out">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-50 text-accent-600 mb-3">
             <BookOpen className="h-5 w-5" />
           </div>
           <h4 className="font-semibold text-slate-900 mb-1">AI Generation</h4>
@@ -372,8 +372,8 @@ function EmptyState({ searchQuery, statusFilter }: EmptyStateProps) {
             Generate documentation tailored to each SDLC phase
           </p>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-green-600 mb-3">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 ease-out">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-50 text-success-600 mb-3">
             <FolderOpen className="h-5 w-5" />
           </div>
           <h4 className="font-semibold text-slate-900 mb-1">Export Bundle</h4>
