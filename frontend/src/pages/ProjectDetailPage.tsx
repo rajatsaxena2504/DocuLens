@@ -13,12 +13,15 @@ import {
   Rocket,
   Wrench,
   Download,
+  FolderTree,
+  ChevronDown,
 } from 'lucide-react'
 import Layout from '@/components/common/Layout'
 import { PageLoading } from '@/components/common/Loading'
 import Button from '@/components/common/Button'
 import ProjectMembersPanel from '@/components/project/ProjectMembersPanel'
 import AddMemberModal from '@/components/project/AddMemberModal'
+import FileBrowser from '@/components/files/FileBrowser'
 import { useSDLCProject, useSDLCStages } from '@/hooks/useSDLCProjects'
 import { useProjectContext } from '@/context/ProjectContext'
 import { generationApi } from '@/api/sections'
@@ -53,6 +56,7 @@ export default function ProjectDetailPage() {
 
   const { data: project, isLoading: projectLoading } = useSDLCProject(projectId || '')
   const { data: stages = [], isLoading: stagesLoading } = useSDLCStages()
+  const [showFileBrowser, setShowFileBrowser] = useState(false)
 
   const isLoading = projectLoading || stagesLoading
   const sortedStages = [...stages].sort((a, b) => a.display_order - b.display_order)
@@ -133,6 +137,40 @@ export default function ProjectDetailPage() {
                     <RepositoryCard key={repo.id} repo={repo} />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* File Browser */}
+            {project.repositories && project.repositories.length > 0 && (
+              <div className="mb-6">
+                <button
+                  onClick={() => setShowFileBrowser(!showFileBrowser)}
+                  className="flex items-center justify-between w-full px-4 py-3 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                      <FolderTree className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-sm font-semibold text-slate-900">File-Level Documentation</h3>
+                      <p className="text-xs text-slate-500">Browse files and create per-file documentation</p>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      'h-5 w-5 text-slate-400 transition-transform',
+                      showFileBrowser && 'rotate-180'
+                    )}
+                  />
+                </button>
+                {showFileBrowser && (
+                  <div className="mt-3 p-4 bg-white border border-slate-200 rounded-lg">
+                    <FileBrowser
+                      projectId={project.id}
+                      sdlcProjectId={project.id}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
