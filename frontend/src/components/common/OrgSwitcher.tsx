@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, ChevronDown, Plus, Settings, Check } from 'lucide-react'
+import { Building2, ChevronDown, Plus, Settings, Check, UserPlus } from 'lucide-react'
 import { useOrganization } from '@/context/OrganizationContext'
+import { useAuth } from '@/context/AuthContext'
+import { RoleBadges } from '@/components/common/RoleBadges'
 import { cn } from '@/utils/helpers'
 
 export default function OrgSwitcher() {
-  const { organizations, currentOrg, switchOrg, isAdmin } = useOrganization()
+  const { organizations, currentOrg, switchOrg, isOwner } = useOrganization()
+  const { isSuperadmin } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -20,25 +23,16 @@ export default function OrgSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const getRoleBadge = (role: string) => {
-    const colors = {
-      admin: 'bg-purple-100 text-purple-600',
-      editor: 'bg-blue-100 text-blue-600',
-      viewer: 'bg-slate-100 text-slate-600',
-    }
-    return colors[role as keyof typeof colors] || colors.viewer
-  }
-
   if (organizations.length === 0) {
     return (
       <Link
-        to="/organizations/new"
+        to="/organizations"
         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
       >
         <div className="flex h-6 w-6 items-center justify-center rounded bg-slate-200">
-          <Plus className="h-3.5 w-3.5 text-slate-500" />
+          <UserPlus className="h-3.5 w-3.5 text-slate-500" />
         </div>
-        <span className="text-sm font-medium text-slate-600">Create Organization</span>
+        <span className="text-sm font-medium text-slate-600">Join Organization</span>
       </Link>
     )
   }
@@ -72,8 +66,8 @@ export default function OrgSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 mt-1 rounded-lg bg-white border border-slate-200 shadow-lg overflow-hidden z-50">
-          <div className="max-h-64 overflow-y-auto">
+        <div className="absolute left-0 right-0 mt-1.5 rounded-xl bg-white border border-slate-200/80 shadow-xl overflow-hidden z-50 animate-fade-in">
+          <div className="max-h-64 overflow-y-auto py-1">
             {organizations.map((org) => (
               <button
                 key={org.id}
@@ -82,22 +76,26 @@ export default function OrgSwitcher() {
                   setIsOpen(false)
                 }}
                 className={cn(
-                  'flex w-full items-center gap-2.5 px-3 py-2 transition-colors',
+                  'flex w-full items-center gap-2.5 px-3 py-2.5 transition-all duration-200',
                   currentOrg?.id === org.id
                     ? 'bg-primary-50'
                     : 'hover:bg-slate-50'
                 )}
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                  <Building2 className="h-4 w-4 text-slate-600" />
+                <div className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+                  currentOrg?.id === org.id ? 'bg-primary-100' : 'bg-slate-100'
+                )}>
+                  <Building2 className={cn(
+                    'h-4 w-4',
+                    currentOrg?.id === org.id ? 'text-primary-600' : 'text-slate-600'
+                  )} />
                 </div>
                 <div className="flex-1 text-left min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">{org.name}</p>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-xs text-slate-500">/{org.slug}</span>
-                    <span className={cn('text-xs px-1.5 py-0.5 rounded capitalize', getRoleBadge(org.role))}>
-                      {org.role}
-                    </span>
+                    <RoleBadges roles={org.roles || [org.role]} maxDisplay={2} size="sm" />
                   </div>
                 </div>
                 {currentOrg?.id === org.id && (
@@ -107,12 +105,12 @@ export default function OrgSwitcher() {
             ))}
           </div>
 
-          <div className="border-t border-slate-100">
-            {currentOrg && isAdmin && (
+          <div className="border-t border-slate-100 py-1">
+            {currentOrg && (isSuperadmin || isOwner) && (
               <Link
                 to={`/organizations/${currentOrg.id}/settings`}
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-all duration-200"
               >
                 <Settings className="h-4 w-4" />
                 Organization Settings
@@ -121,19 +119,21 @@ export default function OrgSwitcher() {
             <Link
               to="/organizations"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-all duration-200"
             >
               <Building2 className="h-4 w-4" />
-              Manage Organizations
+              All Organizations
             </Link>
-            <Link
-              to="/organizations/new"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Create New Organization
-            </Link>
+            {isSuperadmin && (
+              <Link
+                to="/organizations/new"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-primary-600 hover:bg-primary-50 transition-all duration-200"
+              >
+                <Plus className="h-4 w-4" />
+                Create New Organization
+              </Link>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Plus,
   FolderOpen,
@@ -16,14 +16,19 @@ import {
   Rocket,
   Wrench,
   ArrowRight,
+  Building2,
+  UserPlus,
 } from 'lucide-react'
 import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import { useSDLCProjects, useDeleteSDLCProject } from '@/hooks/useSDLCProjects'
+import { useOrganization } from '@/context/OrganizationContext'
 import { cn, formatRelativeTime } from '@/utils/helpers'
 import type { SDLCProject } from '@/types'
 
 export default function ProjectsPage() {
+  const navigate = useNavigate()
+  const { currentOrg, organizations, isLoading: orgLoading } = useOrganization()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all')
 
@@ -44,6 +49,62 @@ export default function ProjectsPage() {
     if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
       await deleteProject.mutateAsync(projectId)
     }
+  }
+
+  // Show "no org" state if user has no organizations
+  if (!orgLoading && organizations.length === 0) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center">
+              <Building2 className="h-10 w-10 text-slate-400" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">
+            Join an Organization
+          </h2>
+          <p className="text-slate-500 mb-8 max-w-md mx-auto">
+            You need to be part of an organization to view and create projects.
+            Request to join an organization to get started.
+          </p>
+          <Button
+            size="lg"
+            leftIcon={<UserPlus className="h-5 w-5" />}
+            onClick={() => navigate('/organizations')}
+          >
+            Browse Organizations
+          </Button>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Show "select org" state if user has orgs but none selected
+  if (!orgLoading && !currentOrg && organizations.length > 0) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto py-16 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="h-20 w-20 rounded-full bg-primary-50 flex items-center justify-center">
+              <Building2 className="h-10 w-10 text-primary-500" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">
+            Select an Organization
+          </h2>
+          <p className="text-slate-500 mb-8 max-w-md mx-auto">
+            Choose an organization from the dropdown in the header to view its projects.
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/organizations')}
+          >
+            View My Organizations
+          </Button>
+        </div>
+      </Layout>
+    )
   }
 
   return (
@@ -131,7 +192,7 @@ function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
   return (
     <Link to={`/projects/${project.id}`}>
-      <div className="group relative bg-white rounded-lg border border-slate-200 p-5 hover:border-primary-300 hover:shadow-md transition-all">
+      <div className="group relative bg-white rounded-xl border border-slate-200/80 p-5 hover:border-primary-300 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
         {/* Status badge & menu */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
           {project.status === 'archived' && (
@@ -293,7 +354,7 @@ function EmptyState({ searchQuery, statusFilter }: EmptyStateProps) {
 
       {/* Features */}
       <div className="grid sm:grid-cols-3 gap-4 mt-6">
-        <div className="bg-white rounded-lg p-5 border border-slate-200">
+        <div className="bg-white rounded-xl p-5 border border-slate-200/80 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 mb-3">
             <Code2 className="h-5 w-5" />
           </div>
@@ -302,7 +363,7 @@ function EmptyState({ searchQuery, statusFilter }: EmptyStateProps) {
             Connect GitHub repositories for automatic code analysis
           </p>
         </div>
-        <div className="bg-white rounded-lg p-5 border border-slate-200">
+        <div className="bg-white rounded-xl p-5 border border-slate-200/80 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600 mb-3">
             <BookOpen className="h-5 w-5" />
           </div>
@@ -311,7 +372,7 @@ function EmptyState({ searchQuery, statusFilter }: EmptyStateProps) {
             Generate documentation tailored to each SDLC phase
           </p>
         </div>
-        <div className="bg-white rounded-lg p-5 border border-slate-200">
+        <div className="bg-white rounded-xl p-5 border border-slate-200/80 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ease-out">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-50 text-green-600 mb-3">
             <FolderOpen className="h-5 w-5" />
           </div>

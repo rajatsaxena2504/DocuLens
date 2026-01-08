@@ -22,11 +22,16 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered",
         )
 
+    # Check if this is the first user (make them superadmin)
+    user_count = db.query(User).count()
+    is_first_user = user_count == 0
+
     # Create new user
     user = User(
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
         name=user_data.name,
+        is_superadmin=is_first_user,  # First user becomes superadmin
     )
     db.add(user)
     db.commit()

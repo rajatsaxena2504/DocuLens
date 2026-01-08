@@ -90,14 +90,48 @@ def get_current_active_user(
     return current_user
 
 
+# ============ Superadmin Helpers ============
+
+def require_superadmin(user: User) -> User:
+    """Require user to be a superadmin. Raises 403 if not."""
+    if not user.is_superadmin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin access required",
+        )
+    return user
+
+
+def _create_superadmin_membership(org_id: UUID, user_id: UUID) -> OrganizationMember:
+    """Create a synthetic membership object for superadmins with all roles."""
+    # This is an in-memory object, not persisted to database
+    member = OrganizationMember()
+    member.organization_id = org_id
+    member.user_id = user_id
+    member.is_owner = True
+    member.is_editor = True
+    member.is_reviewer = True
+    member.is_viewer = True
+    member.role = "owner"  # Legacy field for compatibility
+    return member
+
+
 # ============ Organization Permission Helpers ============
 
 def check_org_membership(
     db: Session,
     user_id: UUID,
     org_id: UUID,
+    user: Optional[User] = None,
 ) -> Optional[OrganizationMember]:
-    """Check if user is a member of an organization. Returns membership or None."""
+    """Check if user is a member of an organization.
+
+    Returns membership or None. Superadmins get synthetic full-access membership.
+    """
+    # Superadmins bypass membership check - they can access all orgs
+    if user and user.is_superadmin:
+        return _create_superadmin_membership(org_id, user_id)
+
     return (
         db.query(OrganizationMember)
         .filter(
@@ -108,33 +142,53 @@ def check_org_membership(
     )
 
 
-def check_org_admin(
+def check_org_owner(
     db: Session,
     user_id: UUID,
     org_id: UUID,
+    user: Optional[User] = None,
 ) -> bool:
-    """Check if user is an admin of an organization."""
+    """Check if user is an owner of an organization or superadmin."""
+    if user and user.is_superadmin:
+        return True
     membership = check_org_membership(db, user_id, org_id)
-    return membership is not None and membership.role == "admin"
+    return membership is not None and membership.is_owner
 
 
 def check_org_editor(
     db: Session,
     user_id: UUID,
     org_id: UUID,
+    user: Optional[User] = None,
 ) -> bool:
-    """Check if user has editor or admin role in an organization."""
+    """Check if user has editor capabilities (owner or editor role)."""
+    if user and user.is_superadmin:
+        return True
     membership = check_org_membership(db, user_id, org_id)
-    return membership is not None and membership.role in ("admin", "editor")
+    return membership is not None and membership.can_edit()
+
+
+def check_org_reviewer(
+    db: Session,
+    user_id: UUID,
+    org_id: UUID,
+    user: Optional[User] = None,
+) -> bool:
+    """Check if user has reviewer capabilities (owner or reviewer role)."""
+    if user and user.is_superadmin:
+        return True
+    membership = check_org_membership(db, user_id, org_id)
+    return membership is not None and membership.can_review()
 
 
 def require_org_membership(
     db: Session,
     user_id: UUID,
     org_id: UUID,
+    user: Optional[User] = None,
 ) -> OrganizationMember:
     """Require user to be a member of an organization. Raises 403 if not."""
-    membership = check_org_membership(db, user_id, org_id)
+    membership = check_org_membership(db, user_id, org_id, user)
     if not membership:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -143,17 +197,18 @@ def require_org_membership(
     return membership
 
 
-def require_org_admin(
+def require_org_owner(
     db: Session,
     user_id: UUID,
     org_id: UUID,
+    user: Optional[User] = None,
 ) -> OrganizationMember:
-    """Require user to be an admin of an organization. Raises 403 if not."""
-    membership = require_org_membership(db, user_id, org_id)
-    if membership.role != "admin":
+    """Require user to be an owner of an organization. Raises 403 if not."""
+    membership = require_org_membership(db, user_id, org_id, user)
+    if not membership.is_owner:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
+            detail="Owner access required",
         )
     return membership
 
@@ -162,12 +217,29 @@ def require_org_editor(
     db: Session,
     user_id: UUID,
     org_id: UUID,
+    user: Optional[User] = None,
 ) -> OrganizationMember:
-    """Require user to be an editor or admin of an organization. Raises 403 if not."""
-    membership = require_org_membership(db, user_id, org_id)
-    if membership.role not in ("admin", "editor"):
+    """Require user to have editor access. Raises 403 if not."""
+    membership = require_org_membership(db, user_id, org_id, user)
+    if not membership.can_edit():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Editor access required",
+        )
+    return membership
+
+
+def require_org_reviewer(
+    db: Session,
+    user_id: UUID,
+    org_id: UUID,
+    user: Optional[User] = None,
+) -> OrganizationMember:
+    """Require user to have reviewer access. Raises 403 if not."""
+    membership = require_org_membership(db, user_id, org_id, user)
+    if not membership.can_review():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviewer access required",
         )
     return membership

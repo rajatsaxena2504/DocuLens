@@ -14,6 +14,7 @@ import {
   BookOpen,
   Library,
   Layers,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/utils/helpers'
 import ProjectSidebar from '@/components/project/ProjectSidebar'
@@ -25,7 +26,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, logout } = useAuth()
+  const { user, logout, isSuperadmin } = useAuth()
   const location = useLocation()
   const { breadcrumbItems } = useProjectContext()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -205,6 +206,19 @@ export default function Layout({ children }: LayoutProps) {
                     <Settings className="h-4 w-4" />
                     Settings
                   </Link>
+                  {isSuperadmin && (
+                    <>
+                      <div className="border-t border-slate-100" />
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </>
+                  )}
                   <div className="border-t border-slate-100" />
                   <button
                     onClick={logout}

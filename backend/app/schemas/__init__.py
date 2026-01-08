@@ -16,6 +16,9 @@ from app.schemas.organization import (
     OrganizationWithMembers,
     OrganizationInvite,
     UserOrganization,
+    MembershipRequestCreate,
+    MembershipRequestResponse,
+    MembershipRequestReview,
 )
 from app.schemas.project import (
     ProjectCreate,
@@ -98,6 +101,9 @@ __all__ = [
     "OrganizationWithMembers",
     "OrganizationInvite",
     "UserOrganization",
+    "MembershipRequestCreate",
+    "MembershipRequestResponse",
+    "MembershipRequestReview",
     "ProjectCreate",
     "ProjectUpdate",
     "ProjectResponse",

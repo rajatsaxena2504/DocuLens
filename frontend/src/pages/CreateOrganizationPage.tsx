@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Building2 } from 'lucide-react'
 import { organizationsApi } from '@/api/organizations'
 import { useOrganization } from '@/context/OrganizationContext'
+import { useAuth } from '@/context/AuthContext'
 import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
@@ -10,8 +11,17 @@ import toast from 'react-hot-toast'
 
 export default function CreateOrganizationPage() {
   const navigate = useNavigate()
+  const { isSuperadmin } = useAuth()
   const { refreshOrganizations, switchOrg } = useOrganization()
   const [name, setName] = useState('')
+
+  // Redirect non-superadmins
+  useEffect(() => {
+    if (!isSuperadmin) {
+      toast.error('Only superadmins can create organizations')
+      navigate('/organizations')
+    }
+  }, [isSuperadmin, navigate])
   const [slug, setSlug] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -54,7 +64,8 @@ export default function CreateOrganizationPage() {
       await refreshOrganizations()
       switchOrg(org.id)
       toast.success('Organization created successfully!')
-      navigate('/projects')
+      // Navigate to org settings so superadmin can add members
+      navigate(`/organizations/${org.id}/settings`)
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -140,7 +151,7 @@ export default function CreateOrganizationPage() {
         <div className="mt-6 p-4 bg-slate-50 rounded-lg">
           <h4 className="text-sm font-medium text-slate-700 mb-2">What happens next?</h4>
           <ul className="text-sm text-slate-500 space-y-1">
-            <li>You'll be the admin of this organization</li>
+            <li>You'll be the owner of this organization</li>
             <li>You can invite team members and assign roles</li>
             <li>Create projects and start documenting together</li>
           </ul>

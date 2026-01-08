@@ -15,7 +15,7 @@ import type { Connector, ConnectorType } from '../../types'
 
 interface ConnectorsPanelProps {
   organizationId: string
-  isAdmin: boolean
+  isOwner: boolean
 }
 
 const CONNECTOR_INFO: Record<ConnectorType, { name: string; icon: string; description: string }> = {
@@ -41,7 +41,7 @@ const CONNECTOR_INFO: Record<ConnectorType, { name: string; icon: string; descri
   },
 }
 
-export default function ConnectorsPanel({ organizationId, isAdmin }: ConnectorsPanelProps) {
+export default function ConnectorsPanel({ organizationId, isOwner }: ConnectorsPanelProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ id: string; success: boolean; message: string } | null>(null)
@@ -87,7 +87,7 @@ export default function ConnectorsPanel({ organizationId, isAdmin }: ConnectorsP
           <Link2 className="h-5 w-5 text-slate-400" />
           <h3 className="font-medium text-slate-200">External Connectors</h3>
         </div>
-        {isAdmin && (
+        {isOwner && (
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
@@ -106,7 +106,7 @@ export default function ConnectorsPanel({ organizationId, isAdmin }: ConnectorsP
         <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-8 text-center">
           <Link2 className="mx-auto h-12 w-12 text-slate-600" />
           <p className="mt-4 text-slate-400">No connectors configured</p>
-          {isAdmin && (
+          {isOwner && (
             <button
               onClick={() => setShowAddModal(true)}
               className="mt-4 text-emerald-400 hover:text-emerald-300"
@@ -176,7 +176,7 @@ export default function ConnectorsPanel({ organizationId, isAdmin }: ConnectorsP
                     )}
                   </button>
 
-                  {isAdmin && (
+                  {isOwner && (
                     <>
                       <button
                         onClick={() => {/* TODO: Open edit modal */}}

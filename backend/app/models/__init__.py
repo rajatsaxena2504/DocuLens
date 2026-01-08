@@ -1,5 +1,5 @@
 from app.models.user import User
-from app.models.organization import Organization, OrganizationMember
+from app.models.organization import Organization, OrganizationMember, MembershipRequest
 from app.models.sdlc_project import SDLCProject
 from app.models.sdlc_stage import SDLCStage
 from app.models.project import Project
@@ -17,6 +17,7 @@ __all__ = [
     "User",
     "Organization",
     "OrganizationMember",
+    "MembershipRequest",
     "SDLCProject",
     "SDLCStage",
     "Project",

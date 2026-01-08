@@ -8,13 +8,20 @@ const ORG_STORAGE_KEY = 'doculens_current_org'
 interface OrganizationContextType {
   organizations: OrganizationWithRole[]
   currentOrg: OrganizationWithRole | null
-  currentRole: OrganizationRole | null
+  // Multi-role support
+  currentRoles: OrganizationRole[]  // Array of all user's roles in current org
+  currentRole: OrganizationRole | null  // Primary role (highest privilege) - legacy compat
   isLoading: boolean
   switchOrg: (orgId: string | null) => void
   refreshOrganizations: () => Promise<void>
-  isAdmin: boolean
+  // Role checks
+  isOwner: boolean
   isEditor: boolean
-  canEdit: boolean
+  isReviewer: boolean
+  isViewer: boolean
+  // Permission checks (using additive logic)
+  canEdit: boolean  // Owner OR Editor
+  canReview: boolean  // Owner OR Reviewer
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined)
@@ -80,23 +87,36 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     await loadOrganizations()
   }
 
-  const currentRole = currentOrg?.role ?? null
-  const isAdmin = currentRole === 'admin'
-  const isEditor = currentRole === 'editor'
-  const canEdit = isAdmin || isEditor
+  // Multi-role: use roles array, fallback to single role for backwards compat
+  const currentRoles: OrganizationRole[] = currentOrg?.roles ?? (currentOrg?.role ? [currentOrg.role] : [])
+  const currentRole = currentOrg?.primary_role ?? currentOrg?.role ?? null
+
+  // Role checks using multi-role array
+  const isOwner = currentRoles.includes('owner')
+  const isEditor = currentRoles.includes('editor')
+  const isReviewer = currentRoles.includes('reviewer')
+  const isViewer = currentRoles.includes('viewer')
+
+  // Permission checks (additive)
+  const canEdit = isOwner || isEditor
+  const canReview = isOwner || isReviewer
 
   return (
     <OrganizationContext.Provider
       value={{
         organizations,
         currentOrg,
+        currentRoles,
         currentRole,
         isLoading,
         switchOrg,
         refreshOrganizations,
-        isAdmin,
+        isOwner,
         isEditor,
+        isReviewer,
+        isViewer,
         canEdit,
+        canReview,
       }}
     >
       {children}

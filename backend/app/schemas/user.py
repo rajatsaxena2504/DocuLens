@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
     name: Optional[str]
     is_active: bool = True
     email_verified: bool = False
+    is_superadmin: bool = False
     last_login: Optional[datetime] = None
     created_at: datetime
 

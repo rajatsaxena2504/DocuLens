@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, FolderOpen, ArrowRight } from 'lucide-react'
@@ -6,7 +6,9 @@ import Layout from '@/components/common/Layout'
 import Input from '@/components/common/Input'
 import Button from '@/components/common/Button'
 import { useCreateSDLCProject } from '@/hooks/useSDLCProjects'
+import { useOrganization } from '@/context/OrganizationContext'
 import { cn } from '@/utils/helpers'
+import toast from 'react-hot-toast'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,11 +29,23 @@ const itemVariants = {
 
 export default function NewProjectPage() {
   const navigate = useNavigate()
+  const { currentOrg, organizations, isLoading: orgLoading } = useOrganization()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const createProject = useCreateSDLCProject()
+
+  // Redirect users without org membership
+  useEffect(() => {
+    if (!orgLoading && organizations.length === 0) {
+      toast.error('You need to join an organization first')
+      navigate('/organizations')
+    } else if (!orgLoading && !currentOrg) {
+      toast.error('Please select an organization first')
+      navigate('/organizations')
+    }
+  }, [orgLoading, organizations, currentOrg, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

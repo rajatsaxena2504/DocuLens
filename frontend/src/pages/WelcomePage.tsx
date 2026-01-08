@@ -12,8 +12,10 @@ import {
   GitBranch,
   Sparkles,
   FileArchive,
+  Building2,
 } from 'lucide-react'
 import Layout from '@/components/common/Layout'
+import { useOrganization } from '@/context/OrganizationContext'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -66,6 +68,9 @@ const features = [
 ]
 
 export default function WelcomePage() {
+  const { organizations, isLoading: orgLoading } = useOrganization()
+  const hasOrgs = organizations.length > 0
+
   return (
     <Layout>
       <motion.div
@@ -95,13 +100,25 @@ export default function WelcomePage() {
           </p>
 
           {/* CTA Button */}
-          <Link
-            to="/projects/new"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/30"
-          >
-            <Plus className="h-5 w-5" />
-            Create Your First Project
-          </Link>
+          {!orgLoading && (
+            hasOrgs ? (
+              <Link
+                to="/projects/new"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/30"
+              >
+                <Plus className="h-5 w-5" />
+                Create Your First Project
+              </Link>
+            ) : (
+              <Link
+                to="/organizations"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary-500/30"
+              >
+                <Building2 className="h-5 w-5" />
+                Join an Organization
+              </Link>
+            )
+          )}
         </motion.div>
 
         {/* SDLC Coverage Section */}

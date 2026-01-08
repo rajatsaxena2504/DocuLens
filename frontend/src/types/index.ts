@@ -5,12 +5,22 @@ export interface User {
   name: string | null
   is_active: boolean
   email_verified: boolean
+  is_superadmin: boolean
   last_login: string | null
   created_at: string
 }
 
 // Organization types
-export type OrganizationRole = 'admin' | 'editor' | 'viewer'
+export type OrganizationRole = 'owner' | 'editor' | 'reviewer' | 'viewer'
+export type OrganizationRoleName = OrganizationRole  // Alias for clarity
+
+// Multi-role support - boolean flags for additive roles
+export interface OrganizationRoles {
+  is_owner: boolean
+  is_editor: boolean
+  is_reviewer: boolean
+  is_viewer: boolean
+}
 
 export interface Organization {
   id: string
@@ -23,19 +33,28 @@ export interface Organization {
 
 export interface OrganizationMember {
   id: string
-  organization_id: string
+  organization_id?: string
   user_id: string
-  role: OrganizationRole
+  // Multi-role support
+  roles: OrganizationRole[]  // Array of all roles
+  primary_role: OrganizationRole  // Highest privilege role
+  role: OrganizationRole  // Legacy field for backwards compatibility
   joined_at: string
+  user_email?: string
+  user_name?: string | null
   user: {
     id: string
     email: string
     name: string | null
-  }
+  } | null
 }
 
 export interface OrganizationWithRole extends Organization {
-  role: OrganizationRole
+  // Multi-role support
+  roles: OrganizationRole[]  // Array of all roles
+  primary_role: OrganizationRole  // Highest privilege role
+  role: OrganizationRole  // Legacy field
+  member_count?: number
 }
 
 export interface OrganizationDetail extends Organization {
@@ -56,11 +75,44 @@ export interface UpdateOrganizationRequest {
 
 export interface InviteMemberRequest {
   email: string
-  role: OrganizationRole
+  // Support both legacy single role and new multi-role
+  role?: OrganizationRole  // Legacy
+  roles?: OrganizationRoles  // New multi-role
 }
 
 export interface UpdateMemberRoleRequest {
-  role: OrganizationRole
+  // Support both legacy single role and new multi-role
+  role?: OrganizationRole  // Legacy
+  roles?: OrganizationRoles  // New multi-role
+}
+
+// ============ Admin API Types (Superadmin) ============
+
+export interface AdminUserResponse {
+  id: string
+  email: string
+  name: string | null
+  is_active: boolean
+  is_superadmin: boolean
+  created_at: string
+}
+
+export interface AdminOrganizationResponse {
+  id: string
+  name: string
+  slug: string
+  member_count: number
+  created_at: string
+}
+
+export interface CreateOrganizationWithOwnerRequest {
+  name: string
+  slug?: string
+  owner_email: string
+}
+
+export interface GrantSuperadminRequest {
+  email: string
 }
 
 export interface AuthResponse {

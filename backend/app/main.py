@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api import auth, projects, documents, sections, templates, generation, sdlc_projects, organizations, connectors, sttm, files
+from app.api import auth, projects, documents, sections, templates, generation, sdlc_projects, organizations, connectors, sttm, files, admin
 from app.database import engine, Base
 # Import all models to ensure they're registered with Base
 from app.models import user, project, document, section, document_type, generated_content, sdlc_project, sdlc_stage, organization, document_version, project_member, document_review, connector, sttm_mapping
@@ -25,7 +25,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:5175", "http://127.0.0.1:5175", "http://localhost:5176", "http://127.0.0.1:5176"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,6 +43,7 @@ app.include_router(generation.router, prefix="/api/generation", tags=["Generatio
 app.include_router(connectors.router, prefix="/api/connectors", tags=["Connectors"])
 app.include_router(sttm.router, prefix="/api", tags=["STTM"])
 app.include_router(files.router, prefix="/api", tags=["Files"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 
 @app.get("/")

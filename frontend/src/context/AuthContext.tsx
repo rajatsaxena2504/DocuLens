@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
+  isSuperadmin: boolean  // System-wide superadmin flag
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name?: string) => Promise<void>
   logout: () => void
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        isSuperadmin: user?.is_superadmin ?? false,
         login,
         register,
         logout,

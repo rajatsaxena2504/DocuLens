@@ -49,29 +49,30 @@ export default function Modal({
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-slate-900/50 transition-opacity"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm animate-backdrop-in"
           onClick={onClose}
         />
 
         {/* Modal */}
         <div
           className={cn(
-            'relative w-full rounded-lg bg-white shadow-xl',
+            'relative w-full rounded-2xl bg-white shadow-2xl',
+            'animate-modal-in',
             sizes[size]
           )}
         >
           {/* Header */}
           {title && (
-            <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
               <div>
-                <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
                 {description && (
                   <p className="mt-1 text-sm text-slate-500">{description}</p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors -mr-1"
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200 -mr-1"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -82,14 +83,14 @@ export default function Modal({
           {!title && (
             <button
               onClick={onClose}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors z-10"
+              className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200 z-10"
             >
               <X className="h-5 w-5" />
             </button>
           )}
 
           {/* Content */}
-          <div className="p-5">{children}</div>
+          <div className="p-6">{children}</div>
         </div>
       </div>
     </div>

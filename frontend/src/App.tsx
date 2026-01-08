@@ -26,6 +26,7 @@ import CreateOrganizationPage from '@/pages/CreateOrganizationPage'
 import OrganizationSettingsPage from '@/pages/OrganizationSettingsPage'
 import ProfilePage from '@/pages/ProfilePage'
 import SettingsPage from '@/pages/SettingsPage'
+import AdminPage from '@/pages/AdminPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -95,6 +96,9 @@ function AppRoutes() {
       {/* User */}
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+      {/* Admin (Superadmin only) */}
+      <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
 
       {/* Redirects for old routes */}
       <Route path="/dashboard" element={<Navigate to="/" replace />} />

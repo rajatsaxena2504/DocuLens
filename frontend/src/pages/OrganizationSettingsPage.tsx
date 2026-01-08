@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -7,40 +7,103 @@ import {
   Settings,
   Trash2,
   UserPlus,
-  Mail,
+  Search,
+  Check,
+  Pencil,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react'
 import { organizationsApi } from '@/api/organizations'
 import { useOrganization } from '@/context/OrganizationContext'
+import { useAuth } from '@/context/AuthContext'
 import Layout from '@/components/common/Layout'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
+import Modal from '@/components/common/Modal'
 import { PageLoading } from '@/components/common/Loading'
+import ConfirmModal from '@/components/common/ConfirmModal'
+import { RoleBadges } from '@/components/common/RoleBadges'
 import toast from 'react-hot-toast'
-import type { OrganizationDetail, OrganizationMember, OrganizationRole } from '@/types'
+import type { OrganizationDetail, OrganizationMember, OrganizationRoles } from '@/types'
+
+interface AvailableUser {
+  id: string
+  email: string
+  name: string | null
+}
+
+interface MembershipRequest {
+  id: string
+  user_id: string
+  status: string
+  user_email: string
+  user_name: string | null
+  requested_at: string
+}
 
 export default function OrganizationSettingsPage() {
   const { orgId } = useParams<{ orgId: string }>()
   const navigate = useNavigate()
-  const { refreshOrganizations } = useOrganization()
+  const { isSuperadmin } = useAuth()
+  const { refreshOrganizations, organizations } = useOrganization()
+
+  // Check if user has access (owner or superadmin)
+  const currentOrgMembership = organizations.find(o => o.id === orgId)
+  const isOwner = currentOrgMembership?.roles.includes('owner') ?? false
+  const hasAccess = isSuperadmin || isOwner
 
   const [organization, setOrganization] = useState<OrganizationDetail | null>(null)
   const [members, setMembers] = useState<OrganizationMember[]>([])
+  const [requests, setRequests] = useState<MembershipRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'general' | 'members'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'requests'>('general')
 
   // Form states
   const [name, setName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
-  // Invite form
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<OrganizationRole>('viewer')
-  const [isInviting, setIsInviting] = useState(false)
+  // Add Members modal
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false)
+  const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([])
+  const [userSearch, setUserSearch] = useState('')
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
+  const [addRoles, setAddRoles] = useState<OrganizationRoles>({
+    is_owner: false,
+    is_editor: false,
+    is_reviewer: false,
+    is_viewer: true,
+  })
+  const [isAddingMembers, setIsAddingMembers] = useState(false)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+
+  // Edit Roles modal
+  const [editingMember, setEditingMember] = useState<OrganizationMember | null>(null)
+  const [editRoles, setEditRoles] = useState<OrganizationRoles>({
+    is_owner: false,
+    is_editor: false,
+    is_reviewer: false,
+    is_viewer: true,
+  })
+
+  // Confirmation modals
+  const [showDeleteOrgModal, setShowDeleteOrgModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; email: string } | null>(null)
+
+  // Redirect if user doesn't have access
+  useEffect(() => {
+    if (!isLoading && organizations.length > 0 && !hasAccess) {
+      toast.error('You do not have permission to manage this organization')
+      navigate('/organizations')
+    }
+  }, [hasAccess, isLoading, organizations, navigate])
 
   useEffect(() => {
     if (orgId) {
       loadOrganization()
       loadMembers()
+      loadRequests()
     }
   }, [orgId])
 
@@ -67,6 +130,110 @@ export default function OrganizationSettingsPage() {
     }
   }
 
+  const loadRequests = async () => {
+    try {
+      const requestsList = await organizationsApi.listOrgMembershipRequests(orgId!, 'pending')
+      setRequests(requestsList)
+    } catch (error) {
+      console.error('Failed to load membership requests:', error)
+    }
+  }
+
+  const handleApproveRequest = async (requestId: string) => {
+    try {
+      await organizationsApi.reviewMembershipRequest(orgId!, requestId, 'approve')
+      toast.success('Request approved! User is now a member.')
+      loadRequests()
+      loadMembers()
+    } catch (error) {
+      toast.error('Failed to approve request')
+    }
+  }
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await organizationsApi.reviewMembershipRequest(orgId!, requestId, 'reject')
+      toast.success('Request rejected')
+      loadRequests()
+    } catch (error) {
+      toast.error('Failed to reject request')
+    }
+  }
+
+  const loadAvailableUsers = async (search?: string) => {
+    setIsLoadingUsers(true)
+    try {
+      const users = await organizationsApi.listAvailableUsers(orgId!, search)
+      setAvailableUsers(users)
+    } catch (error) {
+      console.error('Failed to load available users:', error)
+      toast.error('Failed to load users')
+    } finally {
+      setIsLoadingUsers(false)
+    }
+  }
+
+  // Filter available users by search
+  const filteredUsers = useMemo(() => {
+    if (!userSearch) return availableUsers
+    const search = userSearch.toLowerCase()
+    return availableUsers.filter(
+      (user) =>
+        user.email.toLowerCase().includes(search) ||
+        (user.name && user.name.toLowerCase().includes(search))
+    )
+  }, [availableUsers, userSearch])
+
+  const handleOpenAddMembers = () => {
+    setShowAddMembersModal(true)
+    setSelectedUserIds(new Set())
+    setAddRoles({ is_owner: false, is_editor: false, is_reviewer: false, is_viewer: true })
+    setUserSearch('')
+    loadAvailableUsers()
+  }
+
+  const handleToggleUser = (userId: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
+  }
+
+  const handleAddMembers = async () => {
+    if (selectedUserIds.size === 0) {
+      toast.error('Please select at least one user')
+      return
+    }
+
+    if (!addRoles.is_owner && !addRoles.is_editor && !addRoles.is_reviewer && !addRoles.is_viewer) {
+      toast.error('Please select at least one role')
+      return
+    }
+
+    setIsAddingMembers(true)
+    try {
+      const result = await organizationsApi.addMembersBulk(orgId!, {
+        user_ids: Array.from(selectedUserIds),
+        roles: addRoles,
+      })
+      toast.success(result.message)
+      setShowAddMembersModal(false)
+      loadMembers()
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Failed to add members'
+      toast.error(message)
+    } finally {
+      setIsAddingMembers(false)
+    }
+  }
+
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
@@ -86,58 +253,52 @@ export default function OrganizationSettingsPage() {
     }
   }
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!inviteEmail.trim()) {
-      toast.error('Email is required')
+  const handleEditMember = (member: OrganizationMember) => {
+    setEditingMember(member)
+    setEditRoles({
+      is_owner: member.roles.includes('owner'),
+      is_editor: member.roles.includes('editor'),
+      is_reviewer: member.roles.includes('reviewer'),
+      is_viewer: member.roles.includes('viewer'),
+    })
+  }
+
+  const handleUpdateRoles = async () => {
+    if (!editingMember) return
+
+    if (!editRoles.is_owner && !editRoles.is_editor && !editRoles.is_reviewer && !editRoles.is_viewer) {
+      toast.error('At least one role must be selected')
       return
     }
 
-    setIsInviting(true)
     try {
-      await organizationsApi.inviteMember(orgId!, {
-        email: inviteEmail.trim(),
-        role: inviteRole,
-      })
+      await organizationsApi.updateMemberRole(orgId!, editingMember.id, { roles: editRoles })
       await loadMembers()
-      setInviteEmail('')
-      setInviteRole('viewer')
-      toast.success('Member added successfully')
+      setEditingMember(null)
+      toast.success('Roles updated')
     } catch (error: unknown) {
       const message =
         (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to add member'
+        'Failed to update roles'
       toast.error(message)
-    } finally {
-      setIsInviting(false)
     }
   }
 
-  const handleUpdateRole = async (memberId: string, newRole: OrganizationRole) => {
-    try {
-      await organizationsApi.updateMemberRole(orgId!, memberId, { role: newRole })
-      await loadMembers()
-      toast.success('Role updated')
-    } catch (error) {
-      toast.error('Failed to update role')
-    }
-  }
-
-  const handleRemoveMember = async (memberId: string, memberEmail: string) => {
-    if (!confirm(`Remove ${memberEmail} from this organization?`)) return
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return
 
     try {
-      await organizationsApi.removeMember(orgId!, memberId)
+      await organizationsApi.removeMember(orgId!, memberToRemove.id)
       await loadMembers()
       toast.success('Member removed')
+      setMemberToRemove(null)
     } catch (error) {
       toast.error('Failed to remove member')
     }
   }
 
   const handleDeleteOrg = async () => {
-    if (!confirm('Are you sure you want to delete this organization? This cannot be undone.')) return
-
+    setIsDeleting(true)
     try {
       await organizationsApi.delete(orgId!)
       await refreshOrganizations()
@@ -145,17 +306,8 @@ export default function OrganizationSettingsPage() {
       navigate('/organizations')
     } catch (error) {
       toast.error('Failed to delete organization')
-    }
-  }
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-700'
-      case 'editor':
-        return 'bg-blue-100 text-blue-700'
-      default:
-        return 'bg-slate-100 text-slate-700'
+      setIsDeleting(false)
+      setShowDeleteOrgModal(false)
     }
   }
 
@@ -216,6 +368,22 @@ export default function OrganizationSettingsPage() {
             <Users className="h-4 w-4" />
             Members ({members.length})
           </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'requests'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Clock className="h-4 w-4" />
+            Requests
+            {requests.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                {requests.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* General Settings */}
@@ -258,7 +426,7 @@ export default function OrganizationSettingsPage() {
                 Deleting an organization will remove all associated projects and documents.
                 This action cannot be undone.
               </p>
-              <Button variant="danger" onClick={handleDeleteOrg}>
+              <Button variant="danger" onClick={() => setShowDeleteOrgModal(true)}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Organization
               </Button>
@@ -269,77 +437,60 @@ export default function OrganizationSettingsPage() {
         {/* Members Tab */}
         {activeTab === 'members' && (
           <div className="space-y-6">
-            {/* Invite Form */}
-            <form
-              onSubmit={handleInvite}
-              className="bg-white rounded-lg border border-slate-200 p-6"
-            >
-              <h3 className="font-semibold text-slate-900 mb-4">Invite Member</h3>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Input
-                    id="email"
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="email@example.com"
-                    leftIcon={<Mail className="h-4 w-4" />}
-                  />
-                </div>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as OrganizationRole)}
-                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="viewer">Viewer</option>
-                  <option value="editor">Editor</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <Button type="submit" isLoading={isInviting}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add
-                </Button>
+            {/* Header with Add Members button */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-900">Team Members</h3>
+                <p className="text-sm text-slate-500">Manage who has access to this organization</p>
               </div>
-              <p className="mt-2 text-xs text-slate-500">
-                The user must already have an account. If not, they'll need to register first.
-              </p>
-            </form>
+              <Button onClick={handleOpenAddMembers}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Members
+              </Button>
+            </div>
 
             {/* Members List */}
-            <div className="bg-white rounded-lg border border-slate-200">
-              <div className="px-6 py-4 border-b border-slate-200">
-                <h3 className="font-semibold text-slate-900">Team Members</h3>
-              </div>
-              <div className="divide-y divide-slate-200">
-                {members.map((member) => (
-                  <div key={member.id} className="px-6 py-4 flex items-center justify-between">
+            <div className="space-y-3">
+              {members.length === 0 ? (
+                <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+                  <Users className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No members yet</h3>
+                  <p className="text-slate-500 mb-4">Add team members to collaborate on this organization</p>
+                  <Button onClick={handleOpenAddMembers}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Members
+                  </Button>
+                </div>
+              ) : (
+                members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="bg-white rounded-lg border border-slate-200 p-4 flex items-center justify-between hover:border-slate-300 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                        <span className="text-sm font-medium text-slate-600">
-                          {(member.user.name || member.user.email)[0].toUpperCase()}
+                      <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary-700">
+                          {(member.user?.name || member.user?.email || member.user_email || '?')[0].toUpperCase()}
                         </span>
                       </div>
                       <div>
                         <p className="font-medium text-slate-900">
-                          {member.user.name || 'No name'}
+                          {member.user?.name || member.user_name || 'No name'}
                         </p>
-                        <p className="text-sm text-slate-500">{member.user.email}</p>
+                        <p className="text-sm text-slate-500">{member.user?.email || member.user_email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <select
-                        value={member.role}
-                        onChange={(e) =>
-                          handleUpdateRole(member.id, e.target.value as OrganizationRole)
-                        }
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border-0 cursor-pointer ${getRoleBadgeColor(member.role)}`}
-                      >
-                        <option value="viewer">Viewer</option>
-                        <option value="editor">Editor</option>
-                        <option value="admin">Admin</option>
-                      </select>
                       <button
-                        onClick={() => handleRemoveMember(member.id, member.user.email)}
+                        onClick={() => handleEditMember(member)}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                        title="Click to edit roles"
+                      >
+                        <RoleBadges roles={member.roles} maxDisplay={4} size="sm" />
+                        <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                      </button>
+                      <button
+                        onClick={() => setMemberToRemove({ id: member.id, email: member.user?.email || member.user_email || '' })}
                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Remove member"
                       >
@@ -347,28 +498,34 @@ export default function OrganizationSettingsPage() {
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
 
             {/* Role Descriptions */}
             <div className="bg-slate-50 rounded-lg p-4">
               <h4 className="text-sm font-medium text-slate-700 mb-3">Role Permissions</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeColor('admin')}`}>
-                    Admin
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 shrink-0">
+                    Owner
                   </span>
                   <span className="text-slate-500">Full access, manage members and settings</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeColor('editor')}`}>
+                <div className="flex items-start gap-2">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 shrink-0">
                     Editor
                   </span>
                   <span className="text-slate-500">Create and edit projects and documents</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeColor('viewer')}`}>
+                <div className="flex items-start gap-2">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 shrink-0">
+                    Reviewer
+                  </span>
+                  <span className="text-slate-500">Approve/reject documents, add comments</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 shrink-0">
                     Viewer
                   </span>
                   <span className="text-slate-500">View-only access to projects and documents</span>
@@ -377,7 +534,336 @@ export default function OrganizationSettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Requests Tab */}
+        {activeTab === 'requests' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-semibold text-slate-900">Membership Requests</h3>
+              <p className="text-sm text-slate-500">Review and approve requests to join this organization</p>
+            </div>
+
+            {requests.length === 0 ? (
+              <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+                <Clock className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No pending requests</h3>
+                <p className="text-slate-500">
+                  When users request to join this organization, they'll appear here for approval.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="bg-white rounded-lg border border-slate-200 p-4 flex items-center justify-between hover:border-slate-300 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                        <span className="text-sm font-medium text-amber-700">
+                          {(request.user_name || request.user_email || '?')[0].toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {request.user_name || 'No name'}
+                        </p>
+                        <p className="text-sm text-slate-500">{request.user_email}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Requested {new Date(request.requested_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleRejectRequest(request.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleApproveRequest(request.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-slate-700 mb-2">About Membership Requests</h4>
+              <p className="text-sm text-slate-500">
+                When you approve a request, the user will be added to this organization with the <strong>Viewer</strong> role.
+                You can change their roles in the Members tab after approval.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Add Members Modal */}
+      <Modal
+        isOpen={showAddMembersModal}
+        onClose={() => setShowAddMembersModal(false)}
+        title="Add Members"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Select users to add to this organization and assign their roles.
+          </p>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search users by name or email..."
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* User List */}
+          <div className="border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
+            {isLoadingUsers ? (
+              <div className="p-8 text-center text-slate-500">Loading users...</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                {userSearch ? 'No users found matching your search' : 'No available users to add'}
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filteredUsers.map((user) => (
+                  <label
+                    key={user.id}
+                    className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 transition-colors ${
+                      selectedUserIds.has(user.id) ? 'bg-primary-50' : ''
+                    }`}
+                  >
+                    <div
+                      className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                        selectedUserIds.has(user.id)
+                          ? 'bg-primary-600 border-primary-600'
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      {selectedUserIds.has(user.id) && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={selectedUserIds.has(user.id)}
+                      onChange={() => handleToggleUser(user.id)}
+                      className="sr-only"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 truncate">{user.name || 'No name'}</p>
+                      <p className="text-sm text-slate-500 truncate">{user.email}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {selectedUserIds.size > 0 && (
+            <p className="text-sm text-primary-600 font-medium">
+              {selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected
+            </p>
+          )}
+
+          {/* Role Selection */}
+          <div className="border-t border-slate-200 pt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              Assign roles to selected users
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={addRoles.is_owner}
+                  onChange={(e) => setAddRoles({ ...addRoles, is_owner: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Owner</span>
+                  <p className="text-xs text-slate-500">Full access</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={addRoles.is_editor}
+                  onChange={(e) => setAddRoles({ ...addRoles, is_editor: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Editor</span>
+                  <p className="text-xs text-slate-500">Create & edit</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={addRoles.is_reviewer}
+                  onChange={(e) => setAddRoles({ ...addRoles, is_reviewer: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Reviewer</span>
+                  <p className="text-xs text-slate-500">Approve docs</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={addRoles.is_viewer}
+                  onChange={(e) => setAddRoles({ ...addRoles, is_viewer: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Viewer</span>
+                  <p className="text-xs text-slate-500">Read-only</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowAddMembersModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddMembers}
+              isLoading={isAddingMembers}
+              disabled={selectedUserIds.size === 0}
+            >
+              Add {selectedUserIds.size > 0 ? `${selectedUserIds.size} Member${selectedUserIds.size > 1 ? 's' : ''}` : 'Members'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Roles Modal */}
+      <Modal
+        isOpen={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        title="Edit Roles"
+        size="md"
+      >
+        {editingMember && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              Update roles for{' '}
+              <span className="font-medium text-slate-900">
+                {editingMember.user?.name || editingMember.user_name || editingMember.user?.email || editingMember.user_email}
+              </span>
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={editRoles.is_owner}
+                  onChange={(e) => setEditRoles({ ...editRoles, is_owner: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Owner</span>
+                  <p className="text-xs text-slate-500">Full access, manage members and settings</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={editRoles.is_editor}
+                  onChange={(e) => setEditRoles({ ...editRoles, is_editor: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Editor</span>
+                  <p className="text-xs text-slate-500">Create and edit projects and documents</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={editRoles.is_reviewer}
+                  onChange={(e) => setEditRoles({ ...editRoles, is_reviewer: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Reviewer</span>
+                  <p className="text-xs text-slate-500">Approve/reject documents, add review comments</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={editRoles.is_viewer}
+                  onChange={(e) => setEditRoles({ ...editRoles, is_viewer: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                />
+                <div>
+                  <span className="font-medium text-slate-900">Viewer</span>
+                  <p className="text-xs text-slate-500">View-only access to projects and documents</p>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="secondary" onClick={() => setEditingMember(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateRoles}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Organization Modal */}
+      <ConfirmModal
+        isOpen={showDeleteOrgModal}
+        onClose={() => setShowDeleteOrgModal(false)}
+        onConfirm={handleDeleteOrg}
+        title="Delete Organization"
+        message={
+          <div>
+            <p>Are you sure you want to delete <strong>{organization.name}</strong>?</p>
+            <p className="mt-2 text-sm text-slate-500">
+              This will permanently delete all projects, documents, and data associated with this organization.
+              This action cannot be undone.
+            </p>
+          </div>
+        }
+        confirmText="Delete Organization"
+        variant="danger"
+        isLoading={isDeleting}
+      />
+
+      {/* Remove Member Modal */}
+      <ConfirmModal
+        isOpen={!!memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={handleRemoveMember}
+        title="Remove Member"
+        message={
+          <p>
+            Are you sure you want to remove <strong>{memberToRemove?.email}</strong> from this organization?
+          </p>
+        }
+        confirmText="Remove Member"
+        variant="danger"
+      />
     </Layout>
   )
 }

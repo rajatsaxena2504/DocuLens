@@ -54,22 +54,23 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             disabled={disabled}
             className={cn(
-              'w-full rounded-lg border bg-white text-slate-900',
+              'w-full rounded-lg border bg-white text-slate-900 text-sm',
               'placeholder:text-slate-400',
-              'transition-colors duration-150',
+              'transition-all duration-200 ease-out',
               'focus:outline-none',
+              'shadow-sm',
               // Sizes based on icons
-              leftIcon ? 'pl-10' : 'pl-4',
-              rightIcon || isPassword ? 'pr-10' : 'pr-4',
+              leftIcon ? 'pl-10' : 'pl-3.5',
+              rightIcon || isPassword ? 'pr-10' : 'pr-3.5',
               'py-2.5',
               // States
               error
-                ? 'border-error-300 focus:border-error-500 focus:ring-2 focus:ring-error-500/20'
+                ? 'border-error-300 focus:border-error-500 focus:ring-2 focus:ring-error-500/20 focus:shadow-md'
                 : success
-                  ? 'border-success-300 focus:border-success-500 focus:ring-2 focus:ring-success-500/20'
-                  : 'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
+                  ? 'border-success-300 focus:border-success-500 focus:ring-2 focus:ring-success-500/20 focus:shadow-md'
+                  : 'border-slate-200 hover:border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:shadow-md',
               // Disabled
-              disabled && 'opacity-50 cursor-not-allowed bg-slate-50',
+              disabled && 'opacity-50 cursor-not-allowed bg-slate-50 shadow-none',
               className
             )}
             {...props}

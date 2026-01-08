@@ -477,15 +477,145 @@ doculens/
 | ConnectorImport | connector_imports | Imported content tracking |
 | STTMMapping | sttm_mappings | Source-to-target data mappings |
 
-### Organization Roles
-- **admin**: Full access, manage members and settings
+### System-Wide Role (Superadmin)
+- **superadmin**: System-wide access, can create orgs, manage all orgs, system-wide deployments
+
+### Organization Roles (Multi-role/Additive)
+Users can have MULTIPLE roles per organization:
+- **owner**: Full org access, manage members, settings, approve membership requests
 - **editor**: Create and edit projects and documents
+- **reviewer**: Approve/reject documents, add review comments
 - **viewer**: Read-only access to projects and documents
+
+### Access Control Matrix
+| Feature | Superadmin | Owner | Editor | Reviewer | Viewer |
+|---------|------------|-------|--------|----------|--------|
+| Create Organization | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Manage Org Settings | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Manage Members | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Approve Join Requests | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Create/Edit Projects | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Review Documents | ✅ | ✅ | ❌ | ✅ | ❌ |
+| View Projects | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### Project Roles
 - **owner**: Full project access, manage members
 - **editor**: Can edit documents and project settings
 - **viewer**: Read-only access to project documents
+
+---
+
+### Phase 9: 4-Level Role System Restructure (COMPLETED)
+
+**Status**: Complete (2026-01-08)
+
+#### Backend Changes
+- [x] Migration 013: `is_superadmin` on users, boolean role columns on org_members
+- [x] User model: added `is_superadmin` boolean
+- [x] OrganizationMember model: added `is_admin`, `is_editor`, `is_reviewer`, `is_viewer` boolean columns
+- [x] OrganizationMember model: added `roles`, `primary_role`, `can_edit()`, `can_review()` helpers
+- [x] Updated `app/api/deps.py`:
+  - `require_superadmin()` helper
+  - `_create_superadmin_membership()` for synthetic full-access
+  - All `check_org_*` functions now handle superadmin bypass
+- [x] Updated `app/schemas/organization.py`:
+  - `OrganizationMemberRoles` - boolean flags for additive roles
+  - `OrganizationMemberCreate/Update` - supports both legacy role and new roles object
+  - `OrganizationMemberResponse` - returns `roles` array and `primary_role`
+- [x] Updated `app/api/organizations.py` for multi-role support
+- [x] Created `app/api/admin.py` for superadmin operations:
+  - `GET /admin/users` - List all users
+  - `POST /admin/users/{id}/superadmin` - Grant superadmin by ID
+  - `POST /admin/users/superadmin` - Grant superadmin by email
+  - `DELETE /admin/users/{id}/superadmin` - Revoke superadmin
+  - `GET /admin/organizations` - List all organizations
+  - `POST /admin/organizations` - Create org with initial admin
+  - `DELETE /admin/organizations/{id}` - Delete organization
+- [x] Registered admin router in `app/main.py`
+
+#### Frontend Changes
+- [x] Updated `types/index.ts`:
+  - Added `is_superadmin` to User type
+  - Added `reviewer` to OrganizationRole
+  - Added `OrganizationRoles` interface (boolean flags)
+  - Updated `OrganizationMember` with `roles` array and `primary_role`
+  - Added admin API types
+- [x] Updated `context/AuthContext.tsx`:
+  - Added `isSuperadmin` boolean to context
+- [x] Updated `context/OrganizationContext.tsx`:
+  - Added `currentRoles` array (multi-role)
+  - Added `isReviewer`, `canReview` computed values
+  - Multi-role array checks for permissions
+- [x] Created `api/admin.ts` - Admin API client
+- [x] Created `components/common/RoleBadges.tsx`:
+  - `RoleBadge` - Single role badge with color
+  - `RoleBadges` - Multiple badges with overflow indicator
+  - `SuperadminBadge` - System-wide superadmin badge
+- [x] Created `pages/AdminPage.tsx`:
+  - Organizations tab: list, create with admin, delete
+  - Users tab: list, grant/revoke superadmin
+  - Protected by superadmin check
+- [x] Updated `pages/OrganizationSettingsPage.tsx`:
+  - Multi-role checkbox selection for invite
+  - Multi-role checkbox selection for role edit modal
+  - RoleBadges display for members
+  - Updated role descriptions to include reviewer
+- [x] Updated `components/common/Layout.tsx`:
+  - Admin Dashboard link in user menu (superadmin only)
+- [x] Updated `components/common/OrgSwitcher.tsx`:
+  - Uses RoleBadges for role display
+- [x] Added `/admin` route in `App.tsx`
+
+#### Role System Design
+- **Superadmin** = system-wide flag on User (not per-org membership)
+- **Additive roles** = users can be editor + reviewer simultaneously
+- **Reviewer** separate from Viewer (reviewer can approve, viewer is read-only)
+- **Backwards compatible** = legacy `role` field still works alongside new `roles` object
+- **First user** set as superadmin via migration
+
+#### Key Features
+- Superadmins create orgs and assign owners, then step back
+- Org owners manage day-to-day org operations
+- Multi-role selection with checkboxes (not single dropdown)
+- Role badges with color coding and overflow indicator
+- Superadmin dashboard at `/admin`
+
+### Phase 9b: Membership Requests & Access Control (COMPLETED)
+
+**Status**: Complete (2026-01-08)
+
+#### Backend Changes
+- [x] Migration 014: `membership_requests` table
+- [x] MembershipRequest model (`app/models/organization.py`)
+- [x] Membership request schemas in `app/schemas/organization.py`
+- [x] Membership request API endpoints in `app/api/organizations.py`:
+  - `GET /all/public` - List all organizations (for join dropdown)
+  - `GET /requests/my` - List user's pending requests
+  - `POST /requests` - Create membership request
+  - `DELETE /requests/{id}` - Cancel pending request
+  - `GET /{org_id}/requests` - List org's pending requests (owner only)
+  - `POST /{org_id}/requests/{id}/review` - Approve/reject request (owner only)
+
+#### Frontend Changes
+- [x] Membership request API in `api/organizations.ts`
+- [x] OrganizationsPage: "Request to Join" button and modal
+- [x] OrganizationsPage: Pending requests display
+- [x] OrganizationSettingsPage: "Requests" tab for owners
+- [x] ProfilePage: Shows "Not a member" state with join link
+- [x] Access control on all org-related pages:
+  - CreateOrganizationPage: Superadmin only
+  - OrganizationSettingsPage: Owner/Superadmin only
+  - OrgSwitcher: Conditional links based on role
+
+#### Membership Request Flow
+1. New user registers and sees "Join Organization" CTA
+2. User browses public organizations and sends join request
+3. Pending request shown on user's Organizations page
+4. Org owner sees request in Settings → Requests tab
+5. Owner approves → User added as Viewer
+6. Owner can then change roles in Members tab
+
+---
 
 ## Key Features
 
