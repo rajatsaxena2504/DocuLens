@@ -309,6 +309,24 @@ DocuLens is a full-stack web application that automatically generates profession
 - Suggested sections based on file type
 - Analysis data stored with document
 
+### User Pages (COMPLETED)
+
+**Status**: Complete (2026-01-08)
+
+#### Frontend Changes
+- [x] ProfilePage (`pages/ProfilePage.tsx`):
+  - View account info (name, email, member since, status)
+  - Edit display name
+  - Change password form
+- [x] SettingsPage (`pages/SettingsPage.tsx`):
+  - Theme selection (light/dark/system)
+  - Language preference
+  - Notification settings (email, browser, document updates, review requests)
+  - Editor settings (auto-save, spell check, line numbers)
+  - Data export option
+- [x] Updated Layout.tsx user menu with working links to `/profile` and `/settings`
+- [x] Routes added in App.tsx
+
 ## Tech Stack
 
 ### Backend
@@ -420,6 +438,8 @@ doculens/
 │   │   │   ├── OrganizationsPage.tsx
 │   │   │   ├── CreateOrganizationPage.tsx
 │   │   │   ├── OrganizationSettingsPage.tsx
+│   │   │   ├── ProfilePage.tsx  # User profile management
+│   │   │   ├── SettingsPage.tsx  # App settings
 │   │   │   └── ...
 │   │   ├── types/            # TypeScript interfaces
 │   │   └── utils/
