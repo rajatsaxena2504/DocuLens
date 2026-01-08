@@ -24,6 +24,8 @@ import RegisterPage from '@/pages/RegisterPage'
 import OrganizationsPage from '@/pages/OrganizationsPage'
 import CreateOrganizationPage from '@/pages/CreateOrganizationPage'
 import OrganizationSettingsPage from '@/pages/OrganizationSettingsPage'
+import ProfilePage from '@/pages/ProfilePage'
+import SettingsPage from '@/pages/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -89,6 +91,10 @@ function AppRoutes() {
       {/* Library */}
       <Route path="/library/templates" element={<ProtectedRoute><TemplateLibraryPage /></ProtectedRoute>} />
       <Route path="/library/sections" element={<ProtectedRoute><SectionLibraryPage /></ProtectedRoute>} />
+
+      {/* User */}
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
       {/* Redirects for old routes */}
       <Route path="/dashboard" element={<Navigate to="/" replace />} />

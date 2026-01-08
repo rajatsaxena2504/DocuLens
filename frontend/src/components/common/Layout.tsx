@@ -189,14 +189,22 @@ export default function Layout({ children }: LayoutProps) {
 
               {isUserMenuOpen && (
                 <div className="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-white border border-slate-200 shadow-lg overflow-hidden">
-                  <button className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  >
                     <User className="h-4 w-4" />
                     Profile
-                  </button>
-                  <button className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                  </Link>
+                  <Link
+                    to="/settings"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  >
                     <Settings className="h-4 w-4" />
                     Settings
-                  </button>
+                  </Link>
                   <div className="border-t border-slate-100" />
                   <button
                     onClick={logout}
