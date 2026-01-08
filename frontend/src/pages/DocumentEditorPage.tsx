@@ -21,6 +21,7 @@ import {
   Unlock,
   MessageSquare,
   Undo2,
+  Database,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Layout from '@/components/common/Layout'
@@ -34,6 +35,7 @@ import SectionPromptEditor from '@/components/editor/SectionPromptEditor'
 import VersionPanel from '@/components/editor/VersionPanel'
 import VersionComparisonModal from '@/components/editor/VersionComparisonModal'
 import SubmitForReviewModal from '@/components/editor/SubmitForReviewModal'
+import STTMEditor from '@/components/editor/STTMEditor'
 import { PageLoading } from '@/components/common/Loading'
 import {
   useDocument,
@@ -107,6 +109,7 @@ export default function DocumentEditorPage() {
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
   const [showVersionPanel, setShowVersionPanel] = useState(false)
   const [showSubmitForReview, setShowSubmitForReview] = useState(false)
+  const [showSTTMPanel, setShowSTTMPanel] = useState(false)
   const [compareVersions, setCompareVersions] = useState<{
     from: number
     to: number
@@ -628,7 +631,22 @@ export default function DocumentEditorPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setShowVersionPanel(!showVersionPanel)}
+                onClick={() => {
+                  setShowSTTMPanel(!showSTTMPanel)
+                  if (!showSTTMPanel) setShowVersionPanel(false)
+                }}
+                leftIcon={<Database className="h-3.5 w-3.5" />}
+                className={showSTTMPanel ? 'bg-slate-100' : ''}
+              >
+                STTM
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setShowVersionPanel(!showVersionPanel)
+                  if (!showVersionPanel) setShowSTTMPanel(false)
+                }}
                 leftIcon={<History className="h-3.5 w-3.5" />}
                 className={showVersionPanel ? 'bg-slate-100' : ''}
               >
@@ -774,8 +792,12 @@ export default function DocumentEditorPage() {
             )}
           </AnimatePresence>
 
-          {/* Main Content - All Sections */}
+          {/* Main Content - All Sections or STTM */}
           <main className="flex-1 p-4">
+            {/* STTM Panel */}
+            {showSTTMPanel ? (
+              <STTMEditor documentId={document.id} readOnly={isLocked} />
+            ) : (
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -941,6 +963,7 @@ export default function DocumentEditorPage() {
                 </motion.button>
               )}
             </motion.div>
+            )}
           </main>
         </div>
       </div>

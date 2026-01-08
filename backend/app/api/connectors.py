@@ -47,12 +47,12 @@ def get_user_org_membership(
 
 
 def require_org_admin(db: Session, user_id: UUID, org_id: UUID) -> OrganizationMember:
-    """Require user to be an admin of the organization."""
+    """Require user to be an owner of the organization."""
     membership = get_user_org_membership(db, user_id, org_id)
     if not membership:
         raise HTTPException(status_code=403, detail="Not a member of this organization")
-    if membership.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not membership.is_owner:
+        raise HTTPException(status_code=403, detail="Owner access required")
     return membership
 
 

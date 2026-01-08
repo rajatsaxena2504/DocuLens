@@ -11,6 +11,7 @@ import {
   GripVertical,
   ChevronDown,
   ChevronUp,
+  X,
 } from 'lucide-react'
 import {
   useSTTMMappings,
@@ -21,7 +22,10 @@ import {
   useGenerateSTTMDoc,
 } from '../../hooks/useSTTM'
 import { getExportUrl } from '../../api/sttm'
+import Button from '../common/Button'
+import ConfirmModal from '../common/ConfirmModal'
 import type { STTMMapping, CreateSTTMMappingRequest, TransformationType } from '../../types'
+import toast from 'react-hot-toast'
 
 interface STTMEditorProps {
   documentId: string
@@ -41,6 +45,8 @@ export default function STTMEditor({ documentId, readOnly = false }: STTMEditorP
   const [showAddForm, setShowAddForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [generatedDoc, setGeneratedDoc] = useState<string | null>(null)
+  const [mappingToDelete, setMappingToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
 
   const { data: mappings, isLoading } = useSTTMMappings(documentId)
   const { data: summary } = useSTTMSummary(documentId)
@@ -52,24 +58,27 @@ export default function STTMEditor({ documentId, readOnly = false }: STTMEditorP
 
   const handleCreate = useCallback(async (data: CreateSTTMMappingRequest) => {
     await createMapping.mutateAsync(data)
+    toast.success('Mapping created')
     setShowAddForm(false)
   }, [createMapping])
 
-  const handleDelete = useCallback(async (mappingId: string) => {
-    if (confirm('Delete this mapping?')) {
-      await deleteMapping.mutateAsync(mappingId)
-    }
-  }, [deleteMapping])
+  const handleDelete = useCallback(async () => {
+    if (!mappingToDelete) return
+    await deleteMapping.mutateAsync(mappingToDelete.id)
+    toast.success('Mapping deleted')
+    setMappingToDelete(null)
+  }, [deleteMapping, mappingToDelete])
 
   const handleDeleteAll = useCallback(async () => {
-    if (confirm('Delete ALL mappings? This cannot be undone.')) {
-      await deleteAll.mutateAsync()
-    }
+    await deleteAll.mutateAsync()
+    toast.success('All mappings deleted')
+    setShowDeleteAllModal(false)
   }, [deleteAll])
 
   const handleGenerateDoc = useCallback(async () => {
     const result = await generateDoc.mutateAsync({})
     setGeneratedDoc(result.content)
+    toast.success('Documentation generated')
   }, [generateDoc])
 
   const handleExport = useCallback(() => {
@@ -89,37 +98,39 @@ export default function STTMEditor({ documentId, readOnly = false }: STTMEditorP
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-medium text-slate-200">Source to Target Mapping</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Source to Target Mapping</h2>
           {summary && (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500">
               {summary.total_mappings} mappings • {summary.source_systems.length} source systems • {summary.target_systems.length} target systems
             </p>
           )}
         </div>
         {!readOnly && (
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleExport}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              leftIcon={<Download className="h-4 w-4" />}
             >
-              <Download className="h-4 w-4" />
               Export CSV
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleGenerateDoc}
-              disabled={generateDoc.isPending}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              isLoading={generateDoc.isPending}
+              leftIcon={<FileText className="h-4 w-4" />}
             >
-              {generateDoc.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               Generate Doc
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              leftIcon={<Plus className="h-4 w-4" />}
             >
-              <Plus className="h-4 w-4" />
               Add Mapping
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -131,18 +142,18 @@ export default function STTMEditor({ documentId, readOnly = false }: STTMEditorP
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="rounded-lg border border-slate-700 bg-slate-800/50 p-4"
+            className="rounded-lg border border-slate-200 bg-white p-4"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-medium text-slate-200">Generated Documentation</h3>
+              <h3 className="font-medium text-slate-900">Generated Documentation</h3>
               <button
                 onClick={() => setGeneratedDoc(null)}
-                className="text-slate-400 hover:text-slate-200"
+                className="text-slate-400 hover:text-slate-600"
               >
-                ×
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-900 p-4 text-sm text-slate-300">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-4 text-sm text-slate-700 border border-slate-200">
               {generatedDoc}
             </pre>
           </motion.div>
@@ -162,39 +173,46 @@ export default function STTMEditor({ documentId, readOnly = false }: STTMEditorP
 
       {/* Mappings Table */}
       {mappings && mappings.length === 0 ? (
-        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-8 text-center">
-          <ArrowRight className="mx-auto h-12 w-12 text-slate-600" />
-          <p className="mt-4 text-slate-400">No mappings defined</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
+          <ArrowRight className="mx-auto h-12 w-12 text-slate-300" />
+          <h4 className="mt-4 font-medium text-slate-900">No mappings defined</h4>
+          <p className="mt-2 text-sm text-slate-500">
+            Define source-to-target mappings for your ETL/data pipeline documentation.
+          </p>
           {!readOnly && (
-            <button
+            <Button
               onClick={() => setShowAddForm(true)}
-              className="mt-4 text-emerald-400 hover:text-emerald-300"
+              className="mt-4"
+              leftIcon={<Plus className="h-4 w-4" />}
             >
               Add your first mapping
-            </button>
+            </Button>
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-700">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-2 bg-slate-800 px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-400">
+          <div className="grid grid-cols-12 gap-2 bg-slate-50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 border-b border-slate-200">
             <div className="col-span-1"></div>
             <div className="col-span-3">Source</div>
-            <div className="col-span-1 text-center">→</div>
+            <div className="col-span-1 text-center"></div>
             <div className="col-span-3">Target</div>
             <div className="col-span-2">Transform</div>
             <div className="col-span-2 text-right">Actions</div>
           </div>
 
           {/* Table Body */}
-          <div className="divide-y divide-slate-700">
+          <div className="divide-y divide-slate-100">
             {mappings?.map((mapping) => (
               <MappingRow
                 key={mapping.id}
                 mapping={mapping}
                 isExpanded={expandedId === mapping.id}
                 readOnly={readOnly}
-                onDelete={() => handleDelete(mapping.id)}
+                onDelete={() => setMappingToDelete({
+                  id: mapping.id,
+                  name: `${mapping.source_table}.${mapping.source_column} → ${mapping.target_table}.${mapping.target_column}`
+                })}
                 onToggleExpand={() => setExpandedId(expandedId === mapping.id ? null : mapping.id)}
               />
             ))}
@@ -206,14 +224,46 @@ export default function STTMEditor({ documentId, readOnly = false }: STTMEditorP
       {!readOnly && mappings && mappings.length > 0 && (
         <div className="flex justify-end">
           <button
-            onClick={handleDeleteAll}
-            className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300"
+            onClick={() => setShowDeleteAllModal(true)}
+            className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
           >
             <Trash2 className="h-4 w-4" />
             Delete All Mappings
           </button>
         </div>
       )}
+
+      {/* Delete Single Mapping Modal */}
+      <ConfirmModal
+        isOpen={!!mappingToDelete}
+        onClose={() => setMappingToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Mapping"
+        message={
+          <p>
+            Are you sure you want to delete the mapping <strong>{mappingToDelete?.name}</strong>?
+          </p>
+        }
+        confirmText="Delete"
+        variant="danger"
+        isLoading={deleteMapping.isPending}
+      />
+
+      {/* Delete All Mappings Modal */}
+      <ConfirmModal
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        title="Delete All Mappings"
+        message={
+          <p>
+            Are you sure you want to delete <strong>ALL</strong> mappings? This action cannot be undone.
+          </p>
+        }
+        confirmText="Delete All"
+        variant="danger"
+        isLoading={deleteAll.isPending}
+      />
     </div>
   )
 }
@@ -241,22 +291,22 @@ function MappingRow({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-slate-900/50"
+      className="bg-white hover:bg-slate-50/50 transition-colors"
     >
       <div className="grid grid-cols-12 items-center gap-2 px-4 py-3">
         {/* Drag Handle & Key Indicator */}
         <div className="col-span-1 flex items-center gap-1">
-          <GripVertical className="h-4 w-4 cursor-move text-slate-600" />
+          <GripVertical className="h-4 w-4 cursor-move text-slate-300" />
           {mapping.is_key && (
             <span title="Key column">
-              <Key className="h-4 w-4 text-amber-400" />
+              <Key className="h-4 w-4 text-amber-500" />
             </span>
           )}
         </div>
 
         {/* Source */}
         <div className="col-span-3">
-          <div className="text-sm font-medium text-slate-200">
+          <div className="text-sm font-medium text-slate-900">
             {mapping.source_table}.{mapping.source_column}
           </div>
           <div className="text-xs text-slate-500">
@@ -266,12 +316,12 @@ function MappingRow({
 
         {/* Arrow */}
         <div className="col-span-1 text-center">
-          <ArrowRight className="inline h-4 w-4 text-slate-600" />
+          <ArrowRight className="inline h-4 w-4 text-slate-400" />
         </div>
 
         {/* Target */}
         <div className="col-span-3">
-          <div className="text-sm font-medium text-slate-200">
+          <div className="text-sm font-medium text-slate-900">
             {mapping.target_table}.{mapping.target_column}
           </div>
           <div className="text-xs text-slate-500">
@@ -281,7 +331,7 @@ function MappingRow({
 
         {/* Transform Type */}
         <div className="col-span-2">
-          <span className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${transformType?.color || 'bg-slate-700'} text-white`}>
+          <span className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${transformType?.color || 'bg-slate-500'} text-white`}>
             {transformType?.label || mapping.transformation_type || 'Direct'}
           </span>
         </div>
@@ -290,14 +340,14 @@ function MappingRow({
         <div className="col-span-2 flex items-center justify-end gap-2">
           <button
             onClick={onToggleExpand}
-            className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {!readOnly && (
             <button
               onClick={onDelete}
-              className="rounded p-1 text-slate-400 hover:bg-red-900/50 hover:text-red-400"
+              className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -312,27 +362,27 @@ function MappingRow({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="border-t border-slate-700 bg-slate-800/50 px-4 py-3"
+            className="border-t border-slate-100 bg-slate-50 px-4 py-3"
           >
             <div className="grid grid-cols-2 gap-4 text-sm">
               {mapping.transformation_logic && (
                 <div>
-                  <span className="text-slate-500">Transformation Logic:</span>
-                  <pre className="mt-1 rounded bg-slate-900 p-2 text-xs text-slate-300">
+                  <span className="text-slate-500 font-medium">Transformation Logic:</span>
+                  <pre className="mt-1 rounded bg-white p-2 text-xs text-slate-700 border border-slate-200">
                     {mapping.transformation_logic}
                   </pre>
                 </div>
               )}
               {mapping.business_rule && (
                 <div>
-                  <span className="text-slate-500">Business Rule:</span>
-                  <p className="mt-1 text-slate-300">{mapping.business_rule}</p>
+                  <span className="text-slate-500 font-medium">Business Rule:</span>
+                  <p className="mt-1 text-slate-700">{mapping.business_rule}</p>
                 </div>
               )}
               {mapping.notes && (
                 <div className="col-span-2">
-                  <span className="text-slate-500">Notes:</span>
-                  <p className="mt-1 text-slate-300">{mapping.notes}</p>
+                  <span className="text-slate-500 font-medium">Notes:</span>
+                  <p className="mt-1 text-slate-700">{mapping.notes}</p>
                 </div>
               )}
               <div className="flex gap-4 text-xs text-slate-500">
@@ -386,74 +436,74 @@ function MappingForm({ onSubmit, onCancel, isSubmitting, initialData }: MappingF
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       onSubmit={handleSubmit}
-      className="rounded-lg border border-slate-700 bg-slate-800/50 p-4"
+      className="rounded-lg border border-slate-200 bg-white p-4"
     >
-      <h3 className="mb-4 font-medium text-slate-200">New Mapping</h3>
+      <h3 className="mb-4 font-semibold text-slate-900">New Mapping</h3>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Source Fields */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-emerald-400">Source</h4>
+          <h4 className="text-sm font-medium text-green-600">Source</h4>
           <input
             type="text"
             placeholder="System"
             value={formData.source_system}
             onChange={(e) => setFormData({ ...formData, source_system: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
           <input
             type="text"
             placeholder="Table"
             value={formData.source_table}
             onChange={(e) => setFormData({ ...formData, source_table: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
           <input
             type="text"
             placeholder="Column"
             value={formData.source_column}
             onChange={(e) => setFormData({ ...formData, source_column: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
           <input
             type="text"
             placeholder="Datatype"
             value={formData.source_datatype}
             onChange={(e) => setFormData({ ...formData, source_datatype: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
         </div>
 
         {/* Target Fields */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-blue-400">Target</h4>
+          <h4 className="text-sm font-medium text-blue-600">Target</h4>
           <input
             type="text"
             placeholder="System"
             value={formData.target_system}
             onChange={(e) => setFormData({ ...formData, target_system: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
           <input
             type="text"
             placeholder="Table"
             value={formData.target_table}
             onChange={(e) => setFormData({ ...formData, target_table: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
           <input
             type="text"
             placeholder="Column"
             value={formData.target_column}
             onChange={(e) => setFormData({ ...formData, target_column: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
           <input
             type="text"
             placeholder="Datatype"
             value={formData.target_datatype}
             onChange={(e) => setFormData({ ...formData, target_datatype: e.target.value })}
-            className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           />
         </div>
       </div>
@@ -462,11 +512,11 @@ function MappingForm({ onSubmit, onCancel, isSubmitting, initialData }: MappingF
       <div className="mt-4 space-y-3">
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-sm text-slate-400">Transformation Type</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Transformation Type</label>
             <select
               value={formData.transformation_type}
               onChange={(e) => setFormData({ ...formData, transformation_type: e.target.value as TransformationType })}
-              className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             >
               {TRANSFORMATION_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -474,21 +524,21 @@ function MappingForm({ onSubmit, onCancel, isSubmitting, initialData }: MappingF
             </select>
           </div>
           <div className="flex items-end gap-4">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 checked={formData.is_key}
                 onChange={(e) => setFormData({ ...formData, is_key: e.target.checked })}
-                className="rounded border-slate-600"
+                className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
               Key Column
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-300">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 checked={formData.is_nullable}
                 onChange={(e) => setFormData({ ...formData, is_nullable: e.target.checked })}
-                className="rounded border-slate-600"
+                className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
               Nullable
             </label>
@@ -500,7 +550,7 @@ function MappingForm({ onSubmit, onCancel, isSubmitting, initialData }: MappingF
           value={formData.transformation_logic}
           onChange={(e) => setFormData({ ...formData, transformation_logic: e.target.value })}
           rows={2}
-          className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
         />
 
         <input
@@ -508,7 +558,7 @@ function MappingForm({ onSubmit, onCancel, isSubmitting, initialData }: MappingF
           placeholder="Business Rule"
           value={formData.business_rule}
           onChange={(e) => setFormData({ ...formData, business_rule: e.target.value })}
-          className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
         />
 
         <input
@@ -516,27 +566,18 @@ function MappingForm({ onSubmit, onCancel, isSubmitting, initialData }: MappingF
           placeholder="Notes"
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
         />
       </div>
 
       {/* Actions */}
       <div className="mt-4 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg px-4 py-2 text-sm text-slate-300 hover:bg-slate-700"
-        >
+        <Button variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+        </Button>
+        <Button type="submit" isLoading={isSubmitting}>
           Add Mapping
-        </button>
+        </Button>
       </div>
     </motion.form>
   )

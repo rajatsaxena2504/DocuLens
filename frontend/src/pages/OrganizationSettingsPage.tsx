@@ -13,6 +13,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Link2,
 } from 'lucide-react'
 import { organizationsApi } from '@/api/organizations'
 import { useOrganization } from '@/context/OrganizationContext'
@@ -24,6 +25,7 @@ import Modal from '@/components/common/Modal'
 import { PageLoading } from '@/components/common/Loading'
 import ConfirmModal from '@/components/common/ConfirmModal'
 import { RoleBadges } from '@/components/common/RoleBadges'
+import ConnectorsPanel from '@/components/settings/ConnectorsPanel'
 import toast from 'react-hot-toast'
 import type { OrganizationDetail, OrganizationMember, OrganizationRoles } from '@/types'
 
@@ -57,7 +59,7 @@ export default function OrganizationSettingsPage() {
   const [members, setMembers] = useState<OrganizationMember[]>([])
   const [requests, setRequests] = useState<MembershipRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'requests'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'requests' | 'connectors'>('general')
 
   // Form states
   const [name, setName] = useState('')
@@ -384,6 +386,17 @@ export default function OrganizationSettingsPage() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('connectors')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'connectors'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Link2 className="h-4 w-4" />
+            Connectors
+          </button>
         </div>
 
         {/* General Settings */}
@@ -603,6 +616,11 @@ export default function OrganizationSettingsPage() {
               </p>
             </div>
           </div>
+        )}
+
+        {/* Connectors Tab */}
+        {activeTab === 'connectors' && orgId && (
+          <ConnectorsPanel organizationId={orgId} isOwner={isOwner} />
         )}
       </div>
 
