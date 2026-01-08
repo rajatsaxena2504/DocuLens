@@ -444,6 +444,42 @@ export interface UpdateProjectMemberRequest {
 export type ReviewStatus = 'draft' | 'pending_review' | 'changes_requested' | 'approved'
 export type ReviewDecision = 'approved' | 'rejected' | 'changes_requested'
 
+export interface PendingReviewDocument {
+  id: string
+  title: string
+  status: string
+  review_status: ReviewStatus
+  submitted_at: string | null
+  assigned_to_me: boolean
+  project: {
+    id: string | null
+    name: string | null
+  }
+  submitter: {
+    id: string | null
+    name: string | null
+    email: string | null
+  } | null
+}
+
+export interface ApprovedDocument {
+  id: string
+  title: string
+  status: string
+  review_status: ReviewStatus
+  approved_at: string | null
+  current_version: number
+  project: {
+    id: string | null
+    name: string | null
+  }
+  owner: {
+    id: string | null
+    name: string | null
+    email: string | null
+  } | null
+}
+
 export interface ReviewerInfo {
   id: string
   email: string

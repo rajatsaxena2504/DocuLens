@@ -27,6 +27,8 @@ import OrganizationSettingsPage from '@/pages/OrganizationSettingsPage'
 import ProfilePage from '@/pages/ProfilePage'
 import SettingsPage from '@/pages/SettingsPage'
 import AdminPage from '@/pages/AdminPage'
+import ReviewerDashboardPage from '@/pages/ReviewerDashboardPage'
+import DocumentReviewPage from '@/pages/DocumentReviewPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -96,6 +98,10 @@ function AppRoutes() {
       {/* User */}
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+      {/* Reviewer */}
+      <Route path="/reviews" element={<ProtectedRoute><ReviewerDashboardPage /></ProtectedRoute>} />
+      <Route path="/documents/:documentId/submit-review" element={<ProtectedRoute><DocumentReviewPage /></ProtectedRoute>} />
 
       {/* Admin (Superadmin only) */}
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />

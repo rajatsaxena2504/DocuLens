@@ -4,6 +4,7 @@ import type {
   SubmitForReviewRequest,
   AssignReviewerRequest,
   SubmitReviewRequest,
+  PendingReviewDocument,
 } from '@/types'
 
 export const reviewQueryKeys = {
@@ -109,6 +110,49 @@ export function useResolveComment() {
         queryKey: reviewQueryKeys.review(documentId, reviewId),
       })
       queryClient.invalidateQueries({ queryKey: reviewQueryKeys.status(documentId) })
+    },
+  })
+}
+
+// ============ Reviewer Dashboard Hooks ============
+
+export function useMyPendingReviews() {
+  return useQuery({
+    queryKey: ['pending-reviews', 'me'],
+    queryFn: () => documentsApi.getMyPendingReviews(),
+  })
+}
+
+export function useMyApprovedDocuments() {
+  return useQuery({
+    queryKey: ['approved-documents', 'me'],
+    queryFn: () => documentsApi.getMyApprovedDocuments(),
+  })
+}
+
+export function useRecallToDraft() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (documentId: string) => documentsApi.recallToDraft(documentId),
+    onSuccess: (_, documentId) => {
+      queryClient.invalidateQueries({ queryKey: reviewQueryKeys.status(documentId) })
+      queryClient.invalidateQueries({ queryKey: ['documents', documentId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['approved-documents'] })
+    },
+  })
+}
+
+export function useWithdrawFromReview() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (documentId: string) => documentsApi.withdrawFromReview(documentId),
+    onSuccess: (_, documentId) => {
+      queryClient.invalidateQueries({ queryKey: reviewQueryKeys.status(documentId) })
+      queryClient.invalidateQueries({ queryKey: ['documents', documentId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-reviews'] })
     },
   })
 }

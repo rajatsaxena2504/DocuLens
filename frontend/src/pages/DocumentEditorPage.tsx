@@ -15,6 +15,13 @@ import {
   CheckCircle2,
   Wand2,
   History,
+  FileEdit,
+  Send,
+  Lock,
+  Unlock,
+  MessageSquare,
+  AlertCircle,
+  Undo2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Layout from '@/components/common/Layout'
@@ -27,6 +34,7 @@ import GenerationProgressBar from '@/components/editor/GenerationProgressBar'
 import SectionPromptEditor from '@/components/editor/SectionPromptEditor'
 import VersionPanel from '@/components/editor/VersionPanel'
 import VersionComparisonModal from '@/components/editor/VersionComparisonModal'
+import SubmitForReviewModal from '@/components/editor/SubmitForReviewModal'
 import { PageLoading } from '@/components/common/Loading'
 import {
   useDocument,
@@ -35,9 +43,11 @@ import {
   useAddSection,
   useDeleteSection,
 } from '@/hooks/useDocuments'
+import { useReviewStatus, useDocumentReviews, useRecallToDraft, useWithdrawFromReview } from '@/hooks/useDocumentReviews'
 import { generationApi } from '@/api/sections'
 import { useSDLCProject, useSDLCStage } from '@/hooks/useSDLCProjects'
 import { useProjectContext } from '@/context/ProjectContext'
+import { useOrganization } from '@/context/OrganizationContext'
 import { cn, getStatusColor, getStatusLabel } from '@/utils/helpers'
 // DocumentSection type is inferred from the hook
 import toast from 'react-hot-toast'
@@ -65,8 +75,13 @@ export default function DocumentEditorPage() {
   const navigate = useNavigate()
   const { updateDocument: updateSessionDoc } = useSession()
   const { setCurrentProject, setCurrentStage, setBreadcrumbItems } = useProjectContext()
+  const { canEdit, canReview } = useOrganization()
 
   const { data: document, isLoading, refetch } = useDocument(documentId || '')
+  const { data: reviewStatus, refetch: refetchReviewStatus } = useReviewStatus(documentId || '')
+  const { data: reviews } = useDocumentReviews(documentId || '')
+  const recallToDraft = useRecallToDraft()
+  const withdrawFromReview = useWithdrawFromReview()
   const { data: sdlcProject } = useSDLCProject(document?.sdlc_project_id || '')
   const { data: stage } = useSDLCStage(document?.stage_id || '')
   const regenerateSection = useRegenerateSection()
@@ -92,6 +107,7 @@ export default function DocumentEditorPage() {
   }>>([])
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
   const [showVersionPanel, setShowVersionPanel] = useState(false)
+  const [showSubmitForReview, setShowSubmitForReview] = useState(false)
   const [compareVersions, setCompareVersions] = useState<{
     from: number
     to: number
@@ -418,6 +434,52 @@ export default function DocumentEditorPage() {
   const completedCount = sectionProgress.filter(s => s.status === 'completed').length
   const totalCount = sectionProgress.length
 
+  // Determine if document is locked for editing
+  const isLocked = reviewStatus?.review_status === 'approved' || reviewStatus?.review_status === 'pending_review'
+  const isApproved = reviewStatus?.review_status === 'approved'
+  const hasChangesRequested = reviewStatus?.review_status === 'changes_requested'
+
+  // Get latest review for feedback
+  const latestReview = reviews && reviews.length > 0 ? reviews[0] : null
+
+  // Handle recall to draft (for reviewers)
+  const handleRecallToDraft = () => {
+    if (!documentId) return
+
+    recallToDraft.mutate(documentId, {
+      onSuccess: () => {
+        toast.success('Document recalled to draft. Editing is now enabled.')
+        refetch()
+        refetchReviewStatus()
+      },
+      onError: (error) => {
+        const message =
+          (error as { response?: { data?: { detail?: string } } })?.response?.data
+            ?.detail || 'Failed to recall document'
+        toast.error(message)
+      },
+    })
+  }
+
+  // Handle withdraw from review (for editor/owner)
+  const handleWithdrawFromReview = () => {
+    if (!documentId) return
+
+    withdrawFromReview.mutate(documentId, {
+      onSuccess: () => {
+        toast.success('Document withdrawn from review. You can now edit it.')
+        refetch()
+        refetchReviewStatus()
+      },
+      onError: (error) => {
+        const message =
+          (error as { response?: { data?: { detail?: string } } })?.response?.data
+            ?.detail || 'Failed to withdraw from review'
+        toast.error(message)
+      },
+    })
+  }
+
   if (isLoading) {
     return (
       <Layout>
@@ -467,19 +529,36 @@ export default function DocumentEditorPage() {
                 </div>
                 <div>
                   <h1 className="text-base font-semibold text-slate-900">{document.title}</h1>
-                  <span className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                    getStatusColor(document.status)
-                  )}>
-                    {getStatusLabel(document.status)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                      getStatusColor(document.status)
+                    )}>
+                      {getStatusLabel(document.status)}
+                    </span>
+                    {/* Draft indicator - shows when document is not in approved state */}
+                    {reviewStatus && reviewStatus.review_status !== 'approved' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
+                        <FileEdit className="h-3 w-3" />
+                        {reviewStatus.review_status === 'draft' && 'Draft'}
+                        {reviewStatus.review_status === 'pending_review' && 'Pending Review'}
+                        {reviewStatus.review_status === 'changes_requested' && 'Changes Requested'}
+                      </span>
+                    )}
+                    {reviewStatus && reviewStatus.review_status === 'approved' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 border border-green-200">
+                        <CheckCircle2 className="h-3 w-3" />
+                        v{document.current_version}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <AnimatePresence>
-                {hasChanges && (
+                {hasChanges && !isLocked && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -500,7 +579,7 @@ export default function DocumentEditorPage() {
                 size="sm"
                 variant="outline"
                 onClick={handleGenerateAll}
-                disabled={isGeneratingAll || isAutoGenerating || includedSections.length === 0}
+                disabled={isGeneratingAll || isAutoGenerating || includedSections.length === 0 || isLocked}
                 leftIcon={isGeneratingAll ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -509,6 +588,43 @@ export default function DocumentEditorPage() {
               >
                 {isGeneratingAll ? 'Generating...' : 'Generate All'}
               </Button>
+              {/* Submit for Review - only for editors when document is draft or changes_requested */}
+              {canEdit && reviewStatus && (reviewStatus.review_status === 'draft' || reviewStatus.review_status === 'changes_requested') && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => setShowSubmitForReview(true)}
+                  leftIcon={<Send className="h-3.5 w-3.5" />}
+                >
+                  Submit for Review
+                </Button>
+              )}
+              {/* Withdraw from Review - for editor/owner when document is pending_review */}
+              {canEdit && reviewStatus?.review_status === 'pending_review' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleWithdrawFromReview}
+                  isLoading={withdrawFromReview.isPending}
+                  leftIcon={<Undo2 className="h-3.5 w-3.5" />}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  Withdraw from Review
+                </Button>
+              )}
+              {/* Recall to Draft - only for reviewers when document is approved */}
+              {canReview && isApproved && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRecallToDraft}
+                  isLoading={recallToDraft.isPending}
+                  leftIcon={<Unlock className="h-3.5 w-3.5" />}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  Recall to Draft
+                </Button>
+              )}
               <ExportOptions documentId={document.id} documentTitle={document.title} />
               <Button
                 size="sm"
@@ -529,6 +645,47 @@ export default function DocumentEditorPage() {
             completedCount={completedCount}
             totalCount={totalCount}
           />
+
+          {/* Locked Status Banner */}
+          {isLocked && (
+            <div className={cn(
+              'flex items-center gap-3 px-4 py-2 border-b',
+              isApproved ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+            )}>
+              <Lock className={cn(
+                'h-4 w-4',
+                isApproved ? 'text-green-600' : 'text-amber-600'
+              )} />
+              <p className={cn(
+                'text-sm',
+                isApproved ? 'text-green-700' : 'text-amber-700'
+              )}>
+                {isApproved
+                  ? 'This document is approved and locked. Only reviewers can recall it for editing.'
+                  : 'This document is pending review. Editing is disabled until review is complete.'}
+              </p>
+            </div>
+          )}
+
+          {/* Reviewer Feedback Banner */}
+          {hasChangesRequested && latestReview && latestReview.overall_comment && (
+            <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
+              <div className="flex items-start gap-3">
+                <MessageSquare className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-medium text-amber-800">Changes Requested</p>
+                    {latestReview.reviewer && (
+                      <span className="text-xs text-amber-600">
+                        by {latestReview.reviewer.name || latestReview.reviewer.email}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-amber-700">{latestReview.overall_comment}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         <div className="flex">
@@ -548,14 +705,16 @@ export default function DocumentEditorPage() {
                       <ListTree className="h-4 w-4 text-slate-500" />
                       Contents
                     </h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAddModal(true)}
-                      leftIcon={<Plus className="h-3.5 w-3.5" />}
-                    >
-                      Add
-                    </Button>
+                    {!isLocked && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAddModal(true)}
+                        leftIcon={<Plus className="h-3.5 w-3.5" />}
+                      >
+                        Add
+                      </Button>
+                    )}
                   </div>
 
                   <nav className="space-y-0.5">
@@ -595,16 +754,20 @@ export default function DocumentEditorPage() {
                         <FileText className="h-5 w-5 text-slate-400" />
                       </div>
                       <p className="text-sm font-medium text-slate-600">No sections</p>
-                      <p className="mt-0.5 text-xs text-slate-400">Add your first section</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3"
-                        onClick={() => setShowAddModal(true)}
-                        leftIcon={<Plus className="h-3.5 w-3.5" />}
-                      >
-                        Add Section
-                      </Button>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        {isLocked ? 'Document is locked' : 'Add your first section'}
+                      </p>
+                      {!isLocked && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => setShowAddModal(true)}
+                          leftIcon={<Plus className="h-3.5 w-3.5" />}
+                        >
+                          Add Section
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -685,43 +848,45 @@ export default function DocumentEditorPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <SectionPromptEditor
-                          sectionId={section.id}
-                          title={section.title}
-                          description={section.description || ''}
-                          onSave={() => {}}
-                          onRegenerate={handleRegenerate}
-                          isRegenerating={regeneratingSectionId === section.id}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRegenerate(section.id)
-                          }}
-                          disabled={regeneratingSectionId === section.id || isGeneratingAll}
-                          leftIcon={regeneratingSectionId === section.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-3.5 w-3.5" />
-                          )}
-                        >
-                          Regenerate
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRemoveSection(section.id)
-                          }}
-                          className="text-slate-400 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      {!isLocked && (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <SectionPromptEditor
+                            sectionId={section.id}
+                            title={section.title}
+                            description={section.description || ''}
+                            onSave={() => {}}
+                            onRegenerate={handleRegenerate}
+                            isRegenerating={regeneratingSectionId === section.id}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRegenerate(section.id)
+                            }}
+                            disabled={regeneratingSectionId === section.id || isGeneratingAll}
+                            leftIcon={regeneratingSectionId === section.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3.5 w-3.5" />
+                            )}
+                          >
+                            Regenerate
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveSection(section.id)
+                            }}
+                            className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Section Content */}
@@ -736,11 +901,11 @@ export default function DocumentEditorPage() {
                         >
                           <div className="p-4">
                             {section.content ? (
-                              <div onClick={() => setSelectedSectionId(section.id)}>
+                              <div onClick={() => !isLocked && setSelectedSectionId(section.id)}>
                                 <RichTextEditor
                                   content={selectedSectionId === section.id ? editedContent : section.content}
-                                  onChange={selectedSectionId === section.id ? handleContentChange : () => {}}
-                                  editable={selectedSectionId === section.id}
+                                  onChange={selectedSectionId === section.id && !isLocked ? handleContentChange : () => {}}
+                                  editable={selectedSectionId === section.id && !isLocked}
                                 />
                               </div>
                             ) : (
@@ -749,7 +914,9 @@ export default function DocumentEditorPage() {
                                   <Sparkles className="h-4 w-4 text-slate-400" />
                                 </div>
                                 <p className="text-sm text-slate-500">No content yet</p>
-                                <p className="mt-0.5 text-xs text-slate-400">Use "Generate All" or "Regenerate" to create content</p>
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                  {isLocked ? 'Document is locked' : 'Use "Generate All" or "Regenerate" to create content'}
+                                </p>
                               </div>
                             )}
                           </div>
@@ -760,18 +927,20 @@ export default function DocumentEditorPage() {
                 </motion.div>
               ))}
 
-              {/* Add Section Button at End */}
-              <motion.button
-                variants={itemVariants}
-                onClick={() => setShowAddModal(true)}
-                className={cn(
-                  'flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 py-6 text-slate-500 transition-all',
-                  'hover:border-primary-400 hover:bg-primary-50/50 hover:text-primary-600'
-                )}
-              >
-                <Plus className="h-4 w-4" />
-                <span className="text-sm font-medium">Add New Section</span>
-              </motion.button>
+              {/* Add Section Button at End - only when not locked */}
+              {!isLocked && (
+                <motion.button
+                  variants={itemVariants}
+                  onClick={() => setShowAddModal(true)}
+                  className={cn(
+                    'flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 py-6 text-slate-500 transition-all',
+                    'hover:border-primary-400 hover:bg-primary-50/50 hover:text-primary-600'
+                  )}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-sm font-medium">Add New Section</span>
+                </motion.button>
+              )}
             </motion.div>
           </main>
         </div>
@@ -803,6 +972,14 @@ export default function DocumentEditorPage() {
           onClose={() => setCompareVersions(null)}
         />
       )}
+
+      {/* Submit for Review Modal */}
+      <SubmitForReviewModal
+        isOpen={showSubmitForReview}
+        onClose={() => setShowSubmitForReview(false)}
+        documentId={document.id}
+        documentTitle={document.title}
+      />
 
     </Layout>
   )

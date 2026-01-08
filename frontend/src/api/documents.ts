@@ -22,6 +22,8 @@ import type {
   SubmitForReviewRequest,
   AssignReviewerRequest,
   SubmitReviewRequest,
+  PendingReviewDocument,
+  ApprovedDocument,
 } from '@/types'
 
 export const documentsApi = {
@@ -217,6 +219,37 @@ export const documentsApi = {
   ): Promise<{ message: string }> => {
     const response = await client.post(
       `/documents/${documentId}/reviews/${reviewId}/comments/${commentId}/resolve`
+    )
+    return response.data
+  },
+
+  // Reviewer dashboard
+  getMyPendingReviews: async (): Promise<PendingReviewDocument[]> => {
+    const response = await client.get<PendingReviewDocument[]>(
+      '/documents/pending-reviews/me'
+    )
+    return response.data
+  },
+
+  getMyApprovedDocuments: async (): Promise<ApprovedDocument[]> => {
+    const response = await client.get<ApprovedDocument[]>(
+      '/documents/approved-documents/me'
+    )
+    return response.data
+  },
+
+  // Recall document to draft (reviewer)
+  recallToDraft: async (documentId: string): Promise<{ message: string; document_id: string; review_status: string }> => {
+    const response = await client.post(
+      `/documents/${documentId}/recall-to-draft`
+    )
+    return response.data
+  },
+
+  // Withdraw from review (editor/owner)
+  withdrawFromReview: async (documentId: string): Promise<{ message: string; document_id: string; review_status: string }> => {
+    const response = await client.post(
+      `/documents/${documentId}/withdraw-review`
     )
     return response.data
   },

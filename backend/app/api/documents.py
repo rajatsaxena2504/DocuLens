@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.models import User, Document, DocumentSection, Project, GeneratedContent, SDLCProject, DocumentVersion, DocumentReview, ReviewComment
+from app.models import User, Document, DocumentSection, Project, GeneratedContent, SDLCProject, DocumentVersion, DocumentReview, ReviewComment, OrganizationMember
 from app.schemas import (
     DocumentCreate,
     DocumentUpdate,
@@ -31,6 +31,77 @@ from app.services.section_suggester import SectionSuggester
 from datetime import datetime
 
 router = APIRouter()
+
+
+def get_document_with_access_check(
+    document_id: uuid.UUID,
+    db: Session,
+    current_user: User,
+    require_owner: bool = False,
+) -> Document:
+    """
+    Get a document with access check.
+
+    Access is granted if:
+    1. User is the document owner
+    2. User is a reviewer/owner in the document's organization (via SDLCProject)
+    3. User is the assigned reviewer for this document
+
+    Args:
+        document_id: Document ID
+        db: Database session
+        current_user: Current authenticated user
+        require_owner: If True, only document owner can access (for edit operations)
+
+    Returns:
+        Document object
+
+    Raises:
+        HTTPException: If document not found or access denied
+    """
+    document = db.query(Document).filter(Document.id == document_id).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Owner always has access
+    if document.user_id == current_user.id:
+        return document
+
+    # If require_owner is True, deny non-owners
+    if require_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the document owner can perform this action",
+        )
+
+    # Check if user is the assigned reviewer
+    if document.assigned_reviewer_id == current_user.id:
+        return document
+
+    # Check if user is a reviewer/owner in the document's organization
+    if document.sdlc_project_id:
+        sdlc_project = db.query(SDLCProject).filter(
+            SDLCProject.id == document.sdlc_project_id
+        ).first()
+
+        if sdlc_project and sdlc_project.organization_id:
+            membership = db.query(OrganizationMember).filter(
+                OrganizationMember.organization_id == sdlc_project.organization_id,
+                OrganizationMember.user_id == current_user.id,
+            ).first()
+
+            # Reviewer or owner in the org can access
+            if membership and (membership.is_reviewer or membership.is_owner):
+                return document
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You don't have permission to access this document",
+    )
 
 
 def get_section_response(section: DocumentSection) -> dict:
@@ -170,16 +241,8 @@ def get_document(
     current_user: User = Depends(get_current_user),
 ):
     """Get document with all sections."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     # Build response with sections
     sections = [get_section_response(s) for s in document.sections]
@@ -623,16 +686,8 @@ def list_document_versions(
     current_user: User = Depends(get_current_user),
 ):
     """List all versions of a document."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     versions = db.query(DocumentVersion).filter(
         DocumentVersion.document_id == document_id
@@ -726,16 +781,8 @@ def get_document_version(
     current_user: User = Depends(get_current_user),
 ):
     """Get a specific version of a document with full snapshot."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     version = db.query(DocumentVersion).filter(
         DocumentVersion.document_id == document_id,
@@ -772,16 +819,8 @@ def compare_versions(
     current_user: User = Depends(get_current_user),
 ):
     """Compare two versions of a document."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     # Get both versions
     from_version = db.query(DocumentVersion).filter(
@@ -1023,16 +1062,8 @@ def get_review_status(
     current_user: User = Depends(get_current_user),
 ):
     """Get the current review status of a document."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     # Get latest review
     latest_review = db.query(DocumentReview).filter(
@@ -1162,6 +1193,34 @@ def submit_review(
             detail="Document not found",
         )
 
+    # Check if user can review this document
+    can_review = False
+
+    # Check if user is the assigned reviewer
+    if document.assigned_reviewer_id == current_user.id:
+        can_review = True
+
+    # Check if user is a reviewer/owner in the document's organization
+    if not can_review and document.sdlc_project_id:
+        sdlc_project = db.query(SDLCProject).filter(
+            SDLCProject.id == document.sdlc_project_id
+        ).first()
+
+        if sdlc_project and sdlc_project.organization_id:
+            membership = db.query(OrganizationMember).filter(
+                OrganizationMember.organization_id == sdlc_project.organization_id,
+                OrganizationMember.user_id == current_user.id,
+            ).first()
+
+            if membership and (membership.is_reviewer or membership.is_owner):
+                can_review = True
+
+    if not can_review:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to review this document",
+        )
+
     if document.review_status != 'pending_review':
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1202,6 +1261,29 @@ def submit_review(
     if request.status == 'approved':
         document.review_status = 'approved'
         document.approved_at = datetime.utcnow()
+
+        # Auto-create a new version on approval
+        latest_version = db.query(DocumentVersion).filter(
+            DocumentVersion.document_id == document_id
+        ).order_by(DocumentVersion.version_number.desc()).first()
+
+        next_version = (latest_version.version_number + 1) if latest_version else 1
+
+        # Create snapshot of approved document
+        snapshot = _create_document_snapshot(document)
+
+        new_version = DocumentVersion(
+            document_id=document_id,
+            version_number=next_version,
+            snapshot=snapshot,
+            change_summary=f"Approved by reviewer: {request.overall_comment or 'No comment'}",
+            created_by=current_user.id,
+        )
+        db.add(new_version)
+
+        # Update document's current version
+        document.current_version = next_version
+
     elif request.status == 'changes_requested':
         document.review_status = 'changes_requested'
     elif request.status == 'rejected':
@@ -1250,16 +1332,8 @@ def list_reviews(
     current_user: User = Depends(get_current_user),
 ):
     """List all reviews for a document."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     reviews = db.query(DocumentReview).filter(
         DocumentReview.document_id == document_id
@@ -1276,16 +1350,8 @@ def get_review(
     current_user: User = Depends(get_current_user),
 ):
     """Get a specific review with all comments."""
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id,
-    ).first()
-
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found",
-        )
+    # Use helper - allows owner, reviewers, and assigned reviewer
+    document = get_document_with_access_check(document_id, db, current_user)
 
     review = db.query(DocumentReview).filter(
         DocumentReview.id == review_id,
@@ -1369,3 +1435,218 @@ def resolve_comment(
     db.commit()
 
     return {'message': 'Comment resolved'}
+
+
+# ============ Reviewer Dashboard Endpoints ============
+
+@router.get("/pending-reviews/me")
+def get_my_pending_reviews(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all documents pending review for the current user (as reviewer)."""
+    from app.models import OrganizationMember
+
+    # Get organizations where user is a reviewer or owner
+    reviewer_org_ids = db.query(OrganizationMember.organization_id).filter(
+        OrganizationMember.user_id == current_user.id,
+        (OrganizationMember.is_reviewer == True) | (OrganizationMember.is_owner == True)
+    ).all()
+    reviewer_org_ids = [org_id for (org_id,) in reviewer_org_ids]
+
+    if not reviewer_org_ids:
+        return []
+
+    # Get documents pending review:
+    # 1. Assigned to current user, OR
+    # 2. Not assigned to anyone (in orgs where user is reviewer)
+    documents = db.query(Document).join(
+        SDLCProject, Document.sdlc_project_id == SDLCProject.id
+    ).filter(
+        Document.review_status == 'pending_review',
+        SDLCProject.organization_id.in_(reviewer_org_ids),
+        ((Document.assigned_reviewer_id == current_user.id) | (Document.assigned_reviewer_id == None))
+    ).order_by(Document.submitted_at.desc()).all()
+
+    result = []
+    for doc in documents:
+        # Get project info
+        project = db.query(SDLCProject).filter(SDLCProject.id == doc.sdlc_project_id).first()
+
+        # Get submitter info
+        submitter = db.query(User).filter(User.id == doc.user_id).first()
+
+        result.append({
+            'id': str(doc.id),
+            'title': doc.title,
+            'status': doc.status,
+            'review_status': doc.review_status,
+            'submitted_at': doc.submitted_at,
+            'assigned_to_me': doc.assigned_reviewer_id == current_user.id,
+            'project': {
+                'id': str(project.id) if project else None,
+                'name': project.name if project else None,
+            },
+            'submitter': {
+                'id': str(submitter.id) if submitter else None,
+                'name': submitter.name if submitter else None,
+                'email': submitter.email if submitter else None,
+            } if submitter else None,
+        })
+
+    return result
+
+
+@router.get("/approved-documents/me")
+def get_my_approved_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all approved documents that the current reviewer can recall."""
+    from app.models import OrganizationMember
+
+    # Get organizations where user is a reviewer or owner
+    reviewer_org_ids = db.query(OrganizationMember.organization_id).filter(
+        OrganizationMember.user_id == current_user.id,
+        (OrganizationMember.is_reviewer == True) | (OrganizationMember.is_owner == True)
+    ).all()
+    reviewer_org_ids = [org_id[0] for org_id in reviewer_org_ids]
+
+    if not reviewer_org_ids:
+        return []
+
+    # Get approved documents in those organizations
+    documents = db.query(Document).join(
+        SDLCProject, Document.sdlc_project_id == SDLCProject.id
+    ).filter(
+        SDLCProject.organization_id.in_(reviewer_org_ids),
+        Document.review_status == 'approved',
+    ).order_by(Document.approved_at.desc()).limit(20).all()
+
+    result = []
+    for doc in documents:
+        project = doc.sdlc_project
+        submitter = doc.user
+        result.append({
+            'id': str(doc.id),
+            'title': doc.title,
+            'status': doc.status,
+            'review_status': doc.review_status,
+            'approved_at': doc.approved_at,
+            'current_version': doc.current_version,
+            'project': {
+                'id': str(project.id) if project else None,
+                'name': project.name if project else None,
+            },
+            'owner': {
+                'id': str(submitter.id) if submitter else None,
+                'name': submitter.name if submitter else None,
+                'email': submitter.email if submitter else None,
+            } if submitter else None,
+        })
+
+    return result
+
+
+@router.post("/{document_id}/recall-to-draft")
+def recall_to_draft(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Recall an approved document back to draft status for further editing.
+    Only reviewers/owners can recall documents.
+    """
+    from app.models import OrganizationMember
+
+    document = db.query(Document).filter(Document.id == document_id).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    # Check if document is approved
+    if document.review_status != 'approved':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only approved documents can be recalled to draft",
+        )
+
+    # Get the project's organization
+    project = db.query(SDLCProject).filter(SDLCProject.id == document.sdlc_project_id).first()
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    # Check if user is reviewer or owner in this organization
+    membership = db.query(OrganizationMember).filter(
+        OrganizationMember.organization_id == project.organization_id,
+        OrganizationMember.user_id == current_user.id,
+        (OrganizationMember.is_reviewer == True) | (OrganizationMember.is_owner == True)
+    ).first()
+
+    # Also allow superadmins
+    if not membership and not current_user.is_superadmin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only reviewers or owners can recall documents to draft",
+        )
+
+    # Recall to draft
+    document.review_status = 'draft'
+    document.approved_at = None
+
+    db.commit()
+
+    return {
+        'message': 'Document recalled to draft status',
+        'document_id': str(document.id),
+        'review_status': document.review_status,
+    }
+
+
+@router.post("/{document_id}/withdraw-review")
+def withdraw_from_review(
+    document_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Withdraw a document from review (editor/owner only).
+
+    This allows the document owner to pull back their submission
+    before a reviewer has taken action.
+    """
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,  # Only owner can withdraw
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.review_status != 'pending_review':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document is not pending review",
+        )
+
+    # Withdraw from review - back to draft
+    document.review_status = 'draft'
+    document.submitted_at = None
+    document.assigned_reviewer_id = None
+
+    db.commit()
+
+    return {
+        'message': 'Document withdrawn from review',
+        'document_id': str(document.id),
+        'review_status': document.review_status,
+    }

@@ -3,18 +3,18 @@ import { format } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   History,
-  Plus,
   RotateCcw,
   GitCompare,
   Loader2,
   Clock,
   User,
   X,
+  AlertTriangle,
 } from 'lucide-react'
 import Button from '@/components/common/Button'
+import Modal from '@/components/common/Modal'
 import {
   useDocumentVersions,
-  useCreateVersion,
   useRestoreVersion,
 } from '@/hooks/useDocumentVersions'
 import { cn } from '@/utils/helpers'
@@ -34,57 +34,38 @@ export default function VersionPanel({
   onClose,
   onCompare,
 }: VersionPanelProps) {
-  const [showSaveModal, setShowSaveModal] = useState(false)
-  const [changeSummary, setChangeSummary] = useState('')
   const [selectedVersions, setSelectedVersions] = useState<number[]>([])
+  const [versionToRestore, setVersionToRestore] = useState<DocumentVersion | null>(null)
 
   const { data: versionData, isLoading } = useDocumentVersions(documentId)
-  const createVersion = useCreateVersion()
   const restoreVersion = useRestoreVersion()
 
-  const handleSaveVersion = () => {
-    createVersion.mutate(
+  const handleRestoreVersion = (version: DocumentVersion) => {
+    setVersionToRestore(version)
+  }
+
+  const confirmRestore = () => {
+    if (!versionToRestore) return
+
+    restoreVersion.mutate(
       {
         documentId,
-        data: { change_summary: changeSummary || undefined },
+        data: {
+          version_number: versionToRestore.version_number,
+          change_summary: `Restored from version ${versionToRestore.version_number}`,
+        },
       },
       {
         onSuccess: () => {
-          toast.success('Version saved')
-          setShowSaveModal(false)
-          setChangeSummary('')
+          toast.success(`Restored to version ${versionToRestore.version_number}`)
+          setVersionToRestore(null)
         },
         onError: () => {
-          toast.error('Failed to save version')
+          toast.error('Failed to restore version')
+          setVersionToRestore(null)
         },
       }
     )
-  }
-
-  const handleRestoreVersion = (version: DocumentVersion) => {
-    if (
-      confirm(
-        `Restore to version ${version.version_number}? This will replace current content.`
-      )
-    ) {
-      restoreVersion.mutate(
-        {
-          documentId,
-          data: {
-            version_number: version.version_number,
-            change_summary: `Restored from version ${version.version_number}`,
-          },
-        },
-        {
-          onSuccess: () => {
-            toast.success(`Restored to version ${version.version_number}`)
-          },
-          onError: () => {
-            toast.error('Failed to restore version')
-          },
-        }
-      )
-    }
   }
 
   const toggleVersionSelection = (versionNumber: number) => {
@@ -133,15 +114,14 @@ export default function VersionPanel({
 
           {/* Actions */}
           <div className="border-b border-slate-100 p-3 space-y-2">
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full"
-              onClick={() => setShowSaveModal(true)}
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-            >
-              Save Current Version
-            </Button>
+            {/* Info about version creation */}
+            <div className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg text-xs">
+              <History className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
+              <p className="text-blue-700">
+                Versions are automatically created when a document is approved.
+                Edits are saved as drafts until review approval.
+              </p>
+            </div>
 
             {selectedVersions.length === 2 && (
               <Button
@@ -195,57 +175,53 @@ export default function VersionPanel({
             )}
           </div>
 
-          {/* Save Version Modal */}
-          <AnimatePresence>
-            {showSaveModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/20 flex items-center justify-center p-4"
-                onClick={() => setShowSaveModal(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.95 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0.95 }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="bg-white rounded-lg shadow-xl w-full max-w-sm p-4"
-                >
-                  <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                    Save Version
-                  </h3>
-                  <textarea
-                    value={changeSummary}
-                    onChange={(e) => setChangeSummary(e.target.value)}
-                    placeholder="Describe your changes (optional)..."
-                    className="w-full rounded-lg border border-slate-200 p-3 text-sm placeholder:text-slate-400 focus:border-primary-300 focus:ring-2 focus:ring-primary-100 resize-none"
-                    rows={3}
-                    maxLength={500}
-                  />
-                  <div className="flex justify-end gap-2 mt-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSaveModal(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSaveVersion}
-                      isLoading={createVersion.isPending}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
       )}
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        isOpen={!!versionToRestore}
+        onClose={() => setVersionToRestore(null)}
+        title="Restore Version"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">
+                Restore to version {versionToRestore?.version_number}?
+              </p>
+              <p className="text-sm text-amber-700 mt-1">
+                This will replace the current content with this version. A new version will be created with the restored content.
+              </p>
+            </div>
+          </div>
+
+          {versionToRestore?.change_summary && (
+            <div className="text-sm">
+              <span className="text-slate-500">Version note: </span>
+              <span className="text-slate-700">{versionToRestore.change_summary}</span>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setVersionToRestore(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={confirmRestore}
+              isLoading={restoreVersion.isPending}
+            >
+              Restore Version
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </AnimatePresence>
   )
 }

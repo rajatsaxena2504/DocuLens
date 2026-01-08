@@ -2,6 +2,7 @@ import { ReactNode, useState, useMemo } from 'react'
 import { Link, useLocation, matchPath } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useProjectContext } from '@/context/ProjectContext'
+import { useOrganization } from '@/context/OrganizationContext'
 import {
   FileText,
   FolderKanban,
@@ -15,6 +16,7 @@ import {
   Library,
   Layers,
   Shield,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/utils/helpers'
 import ProjectSidebar from '@/components/project/ProjectSidebar'
@@ -29,6 +31,7 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout, isSuperadmin } = useAuth()
   const location = useLocation()
   const { breadcrumbItems } = useProjectContext()
+  const { canReview } = useOrganization()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -52,6 +55,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Documents', href: '/documents', icon: FileText },
+    ...(canReview ? [{ name: 'Reviews', href: '/reviews', icon: ClipboardCheck }] : []),
   ]
 
   const libraryNavigation = [
