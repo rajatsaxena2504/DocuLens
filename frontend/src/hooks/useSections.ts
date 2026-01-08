@@ -66,10 +66,10 @@ export function useTemplates() {
   })
 }
 
-export function useTemplatesLibrary() {
+export function useTemplatesLibrary(scope?: 'system' | 'org' | 'all', organizationId?: string) {
   return useQuery({
-    queryKey: ['templates-library'],
-    queryFn: () => templatesApi.listWithSections(),
+    queryKey: ['templates-library', scope, organizationId],
+    queryFn: () => templatesApi.listWithSections(scope, organizationId),
   })
 }
 
@@ -93,13 +93,82 @@ export function useCreateTemplate() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: { name: string; description?: string }) => templatesApi.create(data),
+    mutationFn: ({ data, organizationId }: { data: { name: string; description?: string }; organizationId?: string }) =>
+      templatesApi.create(data, organizationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-library'] })
       toast.success('Template created')
     },
     onError: () => {
       toast.error('Failed to create template')
+    },
+  })
+}
+
+export function useSetTemplateDefault() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (templateId: string) => templatesApi.setDefault(templateId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-library'] })
+      toast.success(data.is_org_default ? 'Template set as default' : 'Template removed from defaults')
+    },
+    onError: () => {
+      toast.error('Failed to update template default status')
+    },
+  })
+}
+
+export function useDeleteTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (templateId: string) => templatesApi.delete(templateId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-library'] })
+      toast.success('Template deleted')
+    },
+    onError: () => {
+      toast.error('Failed to delete template')
+    },
+  })
+}
+
+// Template section management
+export function useAddSectionToTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId, sectionId, order }: { templateId: string; sectionId: string; order?: number }) =>
+      templatesApi.addSection(templateId, sectionId, order),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-library'] })
+      toast.success('Section added to template')
+    },
+    onError: () => {
+      toast.error('Failed to add section')
+    },
+  })
+}
+
+export function useRemoveSectionFromTemplate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ templateId, sectionId }: { templateId: string; sectionId: string }) =>
+      templatesApi.removeSection(templateId, sectionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-library'] })
+      toast.success('Section removed from template')
+    },
+    onError: () => {
+      toast.error('Failed to remove section')
     },
   })
 }

@@ -20,7 +20,6 @@ import {
   Lock,
   Unlock,
   MessageSquare,
-  AlertCircle,
   Undo2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'

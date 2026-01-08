@@ -31,7 +31,7 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout, isSuperadmin } = useAuth()
   const location = useLocation()
   const { breadcrumbItems } = useProjectContext()
-  const { canReview } = useOrganization()
+  const { canReview, isOwner } = useOrganization()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -58,10 +58,11 @@ export default function Layout({ children }: LayoutProps) {
     ...(canReview ? [{ name: 'Reviews', href: '/reviews', icon: ClipboardCheck }] : []),
   ]
 
-  const libraryNavigation = [
+  // Library navigation - only visible to owners (for managing templates/sections)
+  const libraryNavigation = isOwner ? [
     { name: 'Template Library', href: '/library/templates', icon: Library },
     { name: 'Section Library', href: '/library/sections', icon: Layers },
-  ]
+  ] : []
 
   return (
     <div className="min-h-screen bg-page">
@@ -131,32 +132,34 @@ export default function Layout({ children }: LayoutProps) {
                   })}
                 </div>
 
-                {/* Library section */}
-                <div>
-                  <p className="px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wide">
-                    Library
-                  </p>
-                  <div className="space-y-0.5">
-                    {libraryNavigation.map((item) => {
-                      const isActive = location.pathname === item.href
-                      return (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          className={cn(
-                            'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                            isActive
-                              ? 'bg-primary-50 text-primary-700'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                          )}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.name}</span>
-                        </Link>
-                      )
-                    })}
+                {/* Library section - only for owners */}
+                {libraryNavigation.length > 0 && (
+                  <div>
+                    <p className="px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wide">
+                      Library
+                    </p>
+                    <div className="space-y-0.5">
+                      {libraryNavigation.map((item) => {
+                        const isActive = location.pathname === item.href
+                        return (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            className={cn(
+                              'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                              isActive
+                                ? 'bg-primary-50 text-primary-700'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            )}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
               </nav>
 
               {/* Help section */}

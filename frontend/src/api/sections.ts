@@ -16,6 +16,8 @@ export interface TemplateWithSections {
   description: string | null
   stage: string | null
   is_system: boolean
+  is_org_default: boolean
+  organization_id: string | null
   created_at: string | null
   sections: Array<{
     id: string
@@ -64,10 +66,20 @@ export const sectionsApi = {
   },
 }
 
+export interface TemplateListParams {
+  stageId?: string
+  scope?: 'system' | 'org' | 'all'
+  organizationId?: string
+}
+
 export const templatesApi = {
-  list: async (stageId?: string): Promise<DocumentType[]> => {
+  list: async (params?: TemplateListParams): Promise<DocumentType[]> => {
     const response = await client.get<DocumentType[]>('/templates', {
-      params: stageId ? { stage_id: stageId } : undefined,
+      params: {
+        stage_id: params?.stageId,
+        scope: params?.scope,
+        organization_id: params?.organizationId,
+      },
     })
     return response.data
   },
@@ -77,8 +89,10 @@ export const templatesApi = {
     return response.data
   },
 
-  listWithSections: async (): Promise<TemplateWithSections[]> => {
-    const response = await client.get<TemplateWithSections[]>('/templates/library/with-sections')
+  listWithSections: async (scope?: 'system' | 'org' | 'all', organizationId?: string): Promise<TemplateWithSections[]> => {
+    const response = await client.get<TemplateWithSections[]>('/templates/library/with-sections', {
+      params: { scope, organization_id: organizationId },
+    })
     return response.data
   },
 
@@ -87,13 +101,59 @@ export const templatesApi = {
     return response.data
   },
 
-  create: async (data: { name: string; description?: string }): Promise<DocumentType> => {
-    const response = await client.post<DocumentType>('/templates', data)
+  create: async (data: { name: string; description?: string }, organizationId?: string): Promise<DocumentType> => {
+    const response = await client.post<DocumentType>('/templates', data, {
+      params: organizationId ? { organization_id: organizationId } : undefined,
+    })
+    return response.data
+  },
+
+  update: async (id: string, data: { name?: string; description?: string }): Promise<DocumentType> => {
+    const response = await client.put<DocumentType>(`/templates/${id}`, null, {
+      params: data,
+    })
     return response.data
   },
 
   delete: async (id: string): Promise<void> => {
     await client.delete(`/templates/${id}`)
+  },
+
+  setDefault: async (id: string): Promise<{ id: string; is_org_default: boolean; message: string }> => {
+    const response = await client.post(`/templates/${id}/set-default`)
+    return response.data
+  },
+
+  // Section management for templates
+  listSections: async (templateId: string): Promise<Array<{
+    id: string
+    name: string
+    description: string
+    default_order: number
+    is_system: boolean
+  }>> => {
+    const response = await client.get(`/templates/${templateId}/sections`)
+    return response.data
+  },
+
+  addSection: async (templateId: string, sectionId: string, order?: number): Promise<{ message: string; section_id: string; order: number }> => {
+    const response = await client.post(`/templates/${templateId}/sections`, {
+      section_id: sectionId,
+      order,
+    })
+    return response.data
+  },
+
+  removeSection: async (templateId: string, sectionId: string): Promise<{ message: string }> => {
+    const response = await client.delete(`/templates/${templateId}/sections/${sectionId}`)
+    return response.data
+  },
+
+  reorderSections: async (templateId: string, sectionIds: string[]): Promise<{ message: string }> => {
+    const response = await client.post(`/templates/${templateId}/sections/reorder`, {
+      section_ids: sectionIds,
+    })
+    return response.data
   },
 }
 

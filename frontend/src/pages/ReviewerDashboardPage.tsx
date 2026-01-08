@@ -18,7 +18,6 @@ import Button from '@/components/common/Button'
 import { Card } from '@/components/common/Card'
 import { useMyPendingReviews, useMyApprovedDocuments, useRecallToDraft } from '@/hooks/useDocumentReviews'
 import { useOrganization } from '@/context/OrganizationContext'
-import { cn } from '@/utils/helpers'
 import toast from 'react-hot-toast'
 
 export default function ReviewerDashboardPage() {

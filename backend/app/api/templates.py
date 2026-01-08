@@ -3,8 +3,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from pydantic import BaseModel
 from app.api.deps import get_db, get_current_user
-from app.models import User, DocumentType, DocumentTypeSection, OrganizationMember
+from app.models import User, DocumentType, DocumentTypeSection, OrganizationMember, Section
 from app.schemas import (
     DocumentTypeCreate,
     DocumentTypeResponse,
@@ -12,14 +13,23 @@ from app.schemas import (
     SectionResponse,
 )
 
+
+class AddSectionToTemplateRequest(BaseModel):
+    section_id: uuid.UUID
+    order: Optional[int] = None
+
+
+class ReorderTemplateSectionsRequest(BaseModel):
+    section_ids: List[uuid.UUID]
+
 router = APIRouter()
 
 
 def _get_user_org_admin_ids(db: Session, user_id: uuid.UUID) -> List[uuid.UUID]:
-    """Get organization IDs where user is an admin."""
+    """Get organization IDs where user is an owner."""
     memberships = db.query(OrganizationMember).filter(
         OrganizationMember.user_id == user_id,
-        OrganizationMember.role == 'admin'
+        OrganizationMember.is_owner == True
     ).all()
     return [m.organization_id for m in memberships]
 
@@ -77,13 +87,40 @@ def list_templates(
 
 @router.get("/library/with-sections", response_model=List[dict])
 def list_templates_with_sections(
+    scope: Optional[str] = Query(None, description="Filter by scope: system, org, or all"),
+    organization_id: Optional[uuid.UUID] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """List all templates with their sections for the template library view."""
-    templates = db.query(DocumentType).filter(
-        (DocumentType.is_system == True) | (DocumentType.user_id == current_user.id)
-    ).all()
+    user_org_ids = _get_user_org_ids(db, current_user.id)
+
+    if scope == 'system':
+        # Only system templates
+        query = db.query(DocumentType).filter(DocumentType.is_system == True)
+    elif scope == 'org':
+        # Only organization templates
+        if organization_id:
+            query = db.query(DocumentType).filter(
+                DocumentType.organization_id == organization_id,
+                DocumentType.is_system == False
+            )
+        else:
+            query = db.query(DocumentType).filter(
+                DocumentType.organization_id.in_(user_org_ids),
+                DocumentType.is_system == False
+            )
+    else:
+        # All accessible templates
+        query = db.query(DocumentType).filter(
+            or_(
+                DocumentType.is_system == True,
+                DocumentType.user_id == current_user.id,
+                DocumentType.organization_id.in_(user_org_ids) if user_org_ids else False
+            )
+        )
+
+    templates = query.all()
 
     result = []
     for template in templates:
@@ -112,6 +149,8 @@ def list_templates_with_sections(
             "description": template.description,
             "stage": template.stage.name if template.stage else None,
             "is_system": template.is_system,
+            "is_org_default": getattr(template, 'is_org_default', False),
+            "organization_id": str(template.organization_id) if template.organization_id else None,
             "created_at": template.created_at.isoformat() if template.created_at else None,
             "sections": sections,
         })
@@ -143,19 +182,19 @@ def create_template(
 ):
     """Create a custom document type/template.
 
-    If organization_id is provided and user is an admin, creates org-level template.
+    If organization_id is provided and user is an owner, creates org-level template.
     Otherwise creates personal template.
     """
     org_id = None
     if organization_id:
-        # Check if user is admin of the organization
-        admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
-        if organization_id in admin_org_ids:
+        # Check if user is owner of the organization
+        owner_org_ids = _get_user_org_admin_ids(db, current_user.id)
+        if organization_id in owner_org_ids:
             org_id = organization_id
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only organization admins can create org-level templates",
+                detail="Only organization owners can create org-level templates",
             )
 
     template = DocumentType(
@@ -257,20 +296,20 @@ def set_template_default(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Set a template as organization default (admin only)."""
-    admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
+    """Set a template as organization default (owner only)."""
+    owner_org_ids = _get_user_org_admin_ids(db, current_user.id)
 
-    if not admin_org_ids:
+    if not owner_org_ids:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization admins can set default templates",
+            detail="Only organization owners can set default templates",
         )
 
     template = db.query(DocumentType).filter(
         DocumentType.id == template_id,
         or_(
             DocumentType.is_system == True,
-            DocumentType.organization_id.in_(admin_org_ids)
+            DocumentType.organization_id.in_(owner_org_ids)
         )
     ).first()
 
@@ -299,15 +338,15 @@ def update_template(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update an organization template (admin only)."""
-    admin_org_ids = _get_user_org_admin_ids(db, current_user.id)
+    """Update an organization template (owner only)."""
+    owner_org_ids = _get_user_org_admin_ids(db, current_user.id)
 
     template = db.query(DocumentType).filter(
         DocumentType.id == template_id,
         DocumentType.is_system == False,
         or_(
             DocumentType.user_id == current_user.id,
-            DocumentType.organization_id.in_(admin_org_ids) if admin_org_ids else False
+            DocumentType.organization_id.in_(owner_org_ids) if owner_org_ids else False
         )
     ).first()
 
@@ -326,3 +365,177 @@ def update_template(
     db.refresh(template)
 
     return template
+
+
+# ============ Template Section Management ============
+
+def _can_edit_template(db: Session, template_id: uuid.UUID, user: User) -> DocumentType:
+    """Check if user can edit this template and return it."""
+    owner_org_ids = _get_user_org_admin_ids(db, user.id)
+
+    template = db.query(DocumentType).filter(
+        DocumentType.id == template_id,
+        DocumentType.is_system == False,
+        or_(
+            DocumentType.user_id == user.id,
+            DocumentType.organization_id.in_(owner_org_ids) if owner_org_ids else False
+        )
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found or you don't have permission to edit it",
+        )
+
+    return template
+
+
+@router.get("/{template_id}/sections")
+def list_template_sections(
+    template_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all sections in a template."""
+    user_org_ids = _get_user_org_ids(db, current_user.id)
+
+    # Check access to template
+    template = db.query(DocumentType).filter(
+        DocumentType.id == template_id,
+        or_(
+            DocumentType.is_system == True,
+            DocumentType.user_id == current_user.id,
+            DocumentType.organization_id.in_(user_org_ids) if user_org_ids else False
+        )
+    ).first()
+
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found",
+        )
+
+    mappings = (
+        db.query(DocumentTypeSection)
+        .filter(DocumentTypeSection.document_type_id == template_id)
+        .order_by(DocumentTypeSection.default_order)
+        .all()
+    )
+
+    return [
+        {
+            "id": str(m.section.id),
+            "name": m.section.name,
+            "description": m.section.description,
+            "default_order": m.default_order,
+            "is_system": m.section.is_system,
+        }
+        for m in mappings
+    ]
+
+
+@router.post("/{template_id}/sections")
+def add_section_to_template(
+    template_id: uuid.UUID,
+    data: AddSectionToTemplateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Add a section to a template."""
+    template = _can_edit_template(db, template_id, current_user)
+
+    # Check if section exists
+    section = db.query(Section).filter(Section.id == data.section_id).first()
+    if not section:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Section not found",
+        )
+
+    # Check if already added
+    existing = db.query(DocumentTypeSection).filter(
+        DocumentTypeSection.document_type_id == template_id,
+        DocumentTypeSection.section_id == data.section_id,
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Section already exists in this template",
+        )
+
+    # Get next order if not specified
+    if data.order is None:
+        max_order = db.query(DocumentTypeSection).filter(
+            DocumentTypeSection.document_type_id == template_id
+        ).count()
+        order = max_order + 1
+    else:
+        order = data.order
+
+    mapping = DocumentTypeSection(
+        document_type_id=template_id,
+        section_id=data.section_id,
+        default_order=order,
+    )
+
+    db.add(mapping)
+    db.commit()
+
+    return {
+        "message": "Section added to template",
+        "section_id": str(data.section_id),
+        "order": order,
+    }
+
+
+@router.delete("/{template_id}/sections/{section_id}")
+def remove_section_from_template(
+    template_id: uuid.UUID,
+    section_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Remove a section from a template."""
+    template = _can_edit_template(db, template_id, current_user)
+
+    mapping = db.query(DocumentTypeSection).filter(
+        DocumentTypeSection.document_type_id == template_id,
+        DocumentTypeSection.section_id == section_id,
+    ).first()
+
+    if not mapping:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Section not found in this template",
+        )
+
+    db.delete(mapping)
+    db.commit()
+
+    return {"message": "Section removed from template"}
+
+
+@router.post("/{template_id}/sections/reorder")
+def reorder_template_sections(
+    template_id: uuid.UUID,
+    data: ReorderTemplateSectionsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Reorder sections in a template."""
+    template = _can_edit_template(db, template_id, current_user)
+
+    for index, section_id in enumerate(data.section_ids):
+        mapping = db.query(DocumentTypeSection).filter(
+            DocumentTypeSection.document_type_id == template_id,
+            DocumentTypeSection.section_id == section_id,
+        ).first()
+
+        if mapping:
+            mapping.default_order = index + 1
+
+    db.commit()
+
+    return {"message": "Sections reordered"}

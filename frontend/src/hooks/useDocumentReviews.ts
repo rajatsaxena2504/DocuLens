@@ -4,7 +4,6 @@ import type {
   SubmitForReviewRequest,
   AssignReviewerRequest,
   SubmitReviewRequest,
-  PendingReviewDocument,
 } from '@/types'
 
 export const reviewQueryKeys = {

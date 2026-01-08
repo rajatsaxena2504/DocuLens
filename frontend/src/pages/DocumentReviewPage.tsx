@@ -7,10 +7,7 @@ import {
   CheckCircle,
   XCircle,
   MessageSquare,
-  Send,
-  Loader2,
   ChevronDown,
-  User,
   Clock,
   FolderOpen,
   AlertTriangle,
@@ -25,7 +22,6 @@ import { useDocument } from '@/hooks/useDocuments'
 import { useReviewStatus, useSubmitReview } from '@/hooks/useDocumentReviews'
 import { useSDLCProject } from '@/hooks/useSDLCProjects'
 import { useOrganization } from '@/context/OrganizationContext'
-import { cn } from '@/utils/helpers'
 import toast from 'react-hot-toast'
 import type { ReviewCommentCreate } from '@/types'
 

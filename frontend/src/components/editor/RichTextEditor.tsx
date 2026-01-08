@@ -28,9 +28,9 @@ function toHtml(content: string): string {
   return content
 }
 
-interface RichTextEditorProps {
+export interface RichTextEditorProps {
   content: string
-  onChange: (content: string) => void
+  onChange?: (content: string) => void
   placeholder?: string
   editable?: boolean
 }
@@ -52,7 +52,7 @@ export default function RichTextEditor({
     content: htmlContent,
     editable,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+      onChange?.(editor.getHTML())
     },
   })
 
