@@ -22,7 +22,12 @@ class User(Base):
     # Relationships
     sdlc_projects = relationship("SDLCProject", back_populates="user", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
-    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
+    documents = relationship(
+        "Document",
+        back_populates="user",
+        foreign_keys="Document.user_id",
+        cascade="all, delete-orphan"
+    )
     custom_document_types = relationship(
         "DocumentType",
         back_populates="user",

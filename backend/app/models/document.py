@@ -48,7 +48,7 @@ class Document(Base):
     sdlc_project = relationship("SDLCProject", back_populates="documents")
     document_type = relationship("DocumentType", back_populates="documents")
     stage = relationship("SDLCStage", back_populates="documents")
-    user = relationship("User", back_populates="documents")
+    user = relationship("User", back_populates="documents", foreign_keys=[user_id])
     sections = relationship(
         "DocumentSection",
         back_populates="document",
