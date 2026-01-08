@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Document, User, Project
+from app.models import Document, User, Project, SDLCProject
 from app.schemas.file_doc import (
     FileInfo,
     FileTreeNode,
@@ -46,6 +46,34 @@ def get_file_type(filename: str) -> Optional[str]:
 
 # ============ File Browsing ============
 
+def _get_file_paths_for_project(db: Session, project_id: UUID) -> tuple[list[str], str]:
+    """Get file paths from either Project (repository) or SDLCProject.
+    Returns (file_paths, project_name).
+    """
+    # First try legacy Project (repository)
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project and project.analysis_data:
+        analysis = project.analysis_data if isinstance(project.analysis_data, dict) else {}
+        return analysis.get('file_tree', []), project.name or "Repository"
+
+    # Try SDLCProject and aggregate from its repositories
+    sdlc_project = db.query(SDLCProject).filter(SDLCProject.id == project_id).first()
+    if sdlc_project:
+        all_files = []
+        for repo in sdlc_project.repositories:
+            if repo.analysis_data:
+                analysis = repo.analysis_data if isinstance(repo.analysis_data, dict) else {}
+                repo_files = analysis.get('file_tree', [])
+                # Prefix with repo name if multiple repos
+                if len(sdlc_project.repositories) > 1:
+                    all_files.extend([f"{repo.name}/{f}" for f in repo_files])
+                else:
+                    all_files.extend(repo_files)
+        return all_files, sdlc_project.name
+
+    return [], "Unknown"
+
+
 @router.get("/projects/{project_id}/files", response_model=List[FileInfo])
 def list_files(
     project_id: UUID,
@@ -55,35 +83,27 @@ def list_files(
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """List files in a project repository."""
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    file_paths, _ = _get_file_paths_for_project(db, project_id)
 
     files = []
+    for file_path in file_paths:
+        if path and not file_path.startswith(path):
+            continue
 
-    # If project has analysis data, extract file list from there
-    if project.analysis_data:
-        analysis = project.analysis_data if isinstance(project.analysis_data, dict) else {}
-        file_tree = analysis.get('file_tree', [])
+        ext = file_path.split('.')[-1] if '.' in file_path else ''
+        detected_type = get_file_type(file_path)
 
-        for file_path in file_tree:
-            if path and not file_path.startswith(path):
-                continue
+        if file_type and detected_type != file_type:
+            continue
 
-            ext = file_path.split('.')[-1] if '.' in file_path else ''
-            detected_type = get_file_type(file_path)
-
-            if file_type and detected_type != file_type:
-                continue
-
-            files.append(FileInfo(
-                path=file_path,
-                name=file_path.split('/')[-1],
-                extension=ext,
-                size=0,  # Size not available from analysis
-                is_directory=False,
-                file_type=detected_type,
-            ))
+        files.append(FileInfo(
+            path=file_path,
+            name=file_path.split('/')[-1],
+            extension=ext,
+            size=0,  # Size not available from analysis
+            is_directory=False,
+            file_type=detected_type,
+        ))
 
     return files
 
@@ -95,16 +115,10 @@ def get_file_tree(
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Get file tree structure for a project."""
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    # Build tree from analysis data
-    analysis = project.analysis_data if isinstance(project.analysis_data, dict) else {}
-    file_paths = analysis.get('file_tree', [])
+    file_paths, project_name = _get_file_paths_for_project(db, project_id)
 
     # Build tree structure
-    root = FileTreeNode(path="", name=project.name or "root", is_directory=True, children=[])
+    root = FileTreeNode(path="", name=project_name or "root", is_directory=True, children=[])
 
     for file_path in file_paths:
         parts = file_path.split('/')
