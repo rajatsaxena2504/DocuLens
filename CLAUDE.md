@@ -205,6 +205,8 @@ DocuLens is a full-stack web application that automatically generates profession
 - [x] Connector API client in `api/connectors.ts`
 - [x] `useConnectors` hooks (`hooks/useConnectors.ts`)
 - [x] ConnectorsPanel component (`components/settings/ConnectorsPanel.tsx`)
+- [x] Integrated into OrganizationSettingsPage as "Connectors" tab
+- [x] Light theme styling with ConfirmModal for delete actions
 
 #### Connector Types
 - **Jira**: Import issues and user stories
@@ -249,6 +251,8 @@ DocuLens is a full-stack web application that automatically generates profession
 - [x] STTM API client in `api/sttm.ts`
 - [x] `useSTTM` hooks (`hooks/useSTTM.ts`)
 - [x] STTMEditor component (`components/editor/STTMEditor.tsx`)
+- [x] Integrated into DocumentEditorPage with "STTM" toggle button
+- [x] Light theme styling with ConfirmModal for delete actions
 
 #### Transformation Types
 - **direct**: 1:1 mapping, no transformation
@@ -289,11 +293,19 @@ DocuLens is a full-stack web application that automatically generates profession
   - `GET /documents/{id}/file-info` - Get file document info
   - `POST /documents/{id}/analyze-file` - Analyze document's file
   - `GET /projects/{id}/file-documents` - List file documents
+- [x] Files API supports both legacy Project and SDLCProject IDs
+- [x] SDLCProject aggregates file trees from all connected repositories
 
 #### Frontend Changes
 - [x] File types in `types/index.ts`
 - [x] Files API client in `api/files.ts`
 - [x] `useFiles` hooks (`hooks/useFiles.ts`)
+- [x] FileBrowser component (`components/files/FileBrowser.tsx`)
+- [x] Integrated into ProjectDetailPage as collapsible "File-Level Documentation" section
+- [x] Tree view navigation with folder expand/collapse
+- [x] File type icons (Python, JS, TS, SQL, Jupyter)
+- [x] Search/filter functionality
+- [x] File analysis and document creation panels
 
 #### Supported File Types
 - **Python** (.py): Imports, functions, classes, docstrings, constants
@@ -416,10 +428,12 @@ doculens/
 │   │   │   └── ...
 │   │   ├── components/       # React components
 │   │   │   ├── common/OrgSwitcher.tsx  # Org dropdown
+│   │   │   ├── common/RoleBadges.tsx  # Multi-role badges
 │   │   │   ├── editor/VersionPanel.tsx  # Document version panel
 │   │   │   ├── editor/VersionComparisonModal.tsx  # Version diff modal
 │   │   │   ├── editor/ReviewPanel.tsx  # Review workflow panel
 │   │   │   ├── editor/STTMEditor.tsx  # STTM mapping editor
+│   │   │   ├── files/FileBrowser.tsx  # File tree browser
 │   │   │   ├── project/ProjectMembersPanel.tsx  # Project team panel
 │   │   │   ├── project/AddMemberModal.tsx  # Add member modal
 │   │   │   ├── settings/ConnectorsPanel.tsx  # External connectors management
